@@ -11,7 +11,6 @@ function Check-LocalTime{
     "Minute",
     "Month",
     "Quarter",
-    "Second",
     "WeekInMonth",
     "Year")
     
@@ -31,7 +30,22 @@ function Check-DiskSpace{
     }
 }
 
+function Check-PhysicalDiskIdleTime{
+    $diskIdleTime = Get-Counter -Counter "\PhysicalDisk(_total)\% Idle Time" -ComputerName $ComputerName -MaxSamples 1 | Select-Object -ExpandProperty CounterSamples |Select-Object -ExpandProperty CookedValue
+
+    if($diskIdleTime -lt 20){
+        $ErrorSummary.Add("Your disk system is saturated. You should consider replacing the current disk system with a faster one.")
+    }
+}
+
+function Check-AverageDiskReadTime{
+    $averageDiskReadSeconds = Get-Counter -Counter "\PhysicalDisk(_total)\Avg. Disk sec/Read" -ComputerName $ComputerName -MaxSamples 1 | Select-Object -ExpandProperty CounterSamples |Select-Object -ExpandProperty CookedValue
+}
+
 Check-LocalTime
 Check-DiskSpace
+Check-PhysicalDiskIdleTime
 
-Write-Host $ErrorSummary
+ForEach($message in $ErrorSummary){
+    Write-Host $message
+}

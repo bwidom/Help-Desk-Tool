@@ -43,8 +43,8 @@
 
                         <Button x:Name="bChangePassword" Content="Change Password" HorizontalAlignment="Left" Height="24" Margin="5,55,0,0" VerticalAlignment="Top" Width="196" Cursor="Hand"/>
                         <Button x:Name="bUnlock" Content="Unlock" HorizontalAlignment="Left" Height="24" Margin="217,55,0,0" VerticalAlignment="Top" Width="196" Cursor="Hand"/>
-                        <TextBox x:Name="lEmployeeID" IsReadOnly="True" HorizontalAlignment="Left" SelectionBrush="{x:Null}" BorderThickness="0" Height="17" Margin="484,17,0,0"  VerticalAlignment="Top" Width="138"  HorizontalContentAlignment="Center" Background="{x:Null}" BorderBrush="{x:Null}"  Foreground="Black" VerticalContentAlignment="Center" Padding="5,0,5,0"/>
-                        <TextBox x:Name="lSAMAccountName"  IsReadOnly="True" HorizontalAlignment="Left" SelectionBrush="{x:Null}" BorderThickness="0" Height="17" Margin="676,17,0,0" VerticalAlignment="Top" Width="138" HorizontalContentAlignment="Center" Background="{x:Null}" BorderBrush="{x:Null}" Foreground="Black" VerticalContentAlignment="Center" Padding="5,0,5,0"/>
+                        <TextBox x:Name="tbEmployeeID" IsReadOnly="True" HorizontalAlignment="Left" SelectionBrush="{x:Null}" BorderThickness="0" Height="17" Margin="484,17,0,0"  VerticalAlignment="Top" Width="138"  HorizontalContentAlignment="Center" Background="{x:Null}" BorderBrush="{x:Null}"  Foreground="Black" VerticalContentAlignment="Center" Padding="5,0,5,0"/>
+                        <TextBox x:Name="tbSAMAccountName"  IsReadOnly="True" HorizontalAlignment="Left" SelectionBrush="{x:Null}" BorderThickness="0" Height="17" Margin="676,17,0,0" VerticalAlignment="Top" Width="138" HorizontalContentAlignment="Center" Background="{x:Null}" BorderBrush="{x:Null}" Foreground="Black" VerticalContentAlignment="Center" Padding="5,0,5,0"/>
                         <Border BorderBrush="#FF898585" BorderThickness="1" HorizontalAlignment="Left" Height="33" VerticalAlignment="Top" Width="398" Tag="User Info" Margin="449,8,0,0"/>
                         <Image x:Name="iDisabledIcon" HorizontalAlignment="Left" Height="12" Margin="816,20,0,0" VerticalAlignment="Top" Width="12" Source="https://cdn-icons-png.flaticon.com/256/58/58696.png" Visibility="Hidden"/>
 
@@ -58,7 +58,7 @@
                 <Grid Background="#FFE5E5E5">
                     <TextBox x:Name="tbComputerSearch" HorizontalAlignment="Left" Height="22" Margin="116,14,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="185" Background="#FFE5E5E5" BorderBrush="#FF707070"/>
                     <Label Content="Computer Name:" HorizontalAlignment="Left" Height="30" Margin="10,10,0,0" VerticalAlignment="Top" Width="104"/>
-                    <ListBox x:Name="lbSessions" Background="{x:Null}" HorizontalAlignment="Left" Height="99" Margin="7,71,0,0" VerticalAlignment="Top" Width="440"/>
+                    <ListBox x:Name="tbSessions" Background="{x:Null}" HorizontalAlignment="Left" Height="99" Margin="7,71,0,0" VerticalAlignment="Top" Width="440"/>
                     <Label Content="Sessions" HorizontalAlignment="Left" Height="26" Margin="10,40,0,0" VerticalAlignment="Top" Width="163"/>
                     <Button x:Name="bSearchComputer" Content="Search" HorizontalAlignment="Left" Height="22" Margin="310,14,0,0" VerticalAlignment="Top" Width="82" Cursor="Hand"/>
                     <Button x:Name="bShadow" Content="Shadow" HorizontalAlignment="Left" Height="24" Margin="14,179,0,0" VerticalAlignment="Top" Width="196" Cursor="Hand"/>
