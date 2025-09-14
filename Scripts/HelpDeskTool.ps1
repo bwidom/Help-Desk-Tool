@@ -108,7 +108,6 @@ function Search-User{
         $tbSAMAccountName.Text = ""
     }elseif($countUser.Count -gt 1){
         Create-SelectUserWindow
-       
     }
 }
 
@@ -126,19 +125,24 @@ function Unlock-User{
 
 function Create-PasswordWindow{
     if($tbSAMAccountName.Text){
+        $passwordSetting = Get-Content -Path '..\config.json' | ConvertFrom-Json
+
         $ChangePasswordWindow = .\CreateWindow.ps1 -Path '..\Windows\ChangePasswordWindow.xaml'
         $ChangePasswordWindow.Owner = $MainWindow
         $ChangePasswordWindow.WindowStartupLocation = 'CenterOwner'      
 
         $lChangePasswordPrompt = $ChangePasswordWindow.FindName("lChangePasswordPrompt")
-        $lChangePasswordPrompt.Content = "Change " + $lSAMAccountName.Text + "'s password to:"
+        $lChangePasswordPrompt.Content = "Change " + $tbSAMAccountName.Text + "'s password to:"
 
-        if(($tbEmployeeID.Text.length -lt 2)){
-            $Digits = '00'
+        $attribute = Get-ADUser -Identity $tbSAMAccountName.Text -Properties $passwordSetting.userAttribute | Select-Object -ExpandProperty $passwordSetting.userAttribute
+        if($passwordSetting.partOfAttribute -gt 0){
+            $password = $passwordSetting.passwordText + $attribute.Substring($passwordSetting.partOfAttribute - 1)
+        }elseif($passwordSetting.partOfAttribute -lt 0){
+            $password = $passwordSetting.passwordText + $attribute.Substring($attribute.Length - ($passwordSetting.partOfAttribute*-1))
         }else{
-            $digits = $tbEmployeeID.Text.Substring($tbEmployeeID.Text.Length - 2)
+            $password = $passwordSetting.passwordText
         }
-        $password = "Changepasswordnow" + $Digits
+
         $tbNewPassword = $ChangePasswordWindow.FindName("tbNewPassword")
         $tbNewPassword.Text = $password
 
