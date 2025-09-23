@@ -58,7 +58,7 @@
                 <Grid Background="#FFE5E5E5">
                     <TextBox x:Name="tbComputerSearch" HorizontalAlignment="Left" Height="22" Margin="116,14,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="185" Background="#FFE5E5E5" BorderBrush="#FF707070"/>
                     <Label Content="Computer Name:" HorizontalAlignment="Left" Height="30" Margin="10,10,0,0" VerticalAlignment="Top" Width="104"/>
-                    <ListBox x:Name="tbSessions" Background="{x:Null}" HorizontalAlignment="Left" Height="99" Margin="7,71,0,0" VerticalAlignment="Top" Width="440"/>
+                    <ListBox x:Name="lbSessions" Background="{x:Null}" HorizontalAlignment="Left" Height="99" Margin="7,71,0,0" VerticalAlignment="Top" Width="440"/>
                     <Label Content="Sessions" HorizontalAlignment="Left" Height="26" Margin="10,40,0,0" VerticalAlignment="Top" Width="163"/>
                     <Button x:Name="bSearchComputer" Content="Search" HorizontalAlignment="Left" Height="22" Margin="310,14,0,0" VerticalAlignment="Top" Width="82" Cursor="Hand"/>
                     <Button x:Name="bShadow" Content="Shadow" HorizontalAlignment="Left" Height="24" Margin="14,179,0,0" VerticalAlignment="Top" Width="196" Cursor="Hand"/>
