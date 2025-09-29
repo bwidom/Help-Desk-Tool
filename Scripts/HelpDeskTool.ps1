@@ -291,6 +291,42 @@ function Start-Shadow{
     }
 }
 
+function Send-Email{
+    $EmailWindow = .\CreateWindow.ps1 -Path '..\Windows\EmailWindow.xaml'
+
+    $user = Get-AdUser -Identity $tbSAMAccountName.Text -Properties EmailAddress
+    $outlook = New-Object -ComObject Outlook.Application
+    $mail = $outlook.createItem(0)
+    $mail.To = $user.EmailAddress
+    $mail.Display()
+
+    $cbTemplate = $EmailWindow.FindName("cbTemplate")
+    $bSelectTemplate = $EmailWindow.FindName('bSelectTemplate')
+
+    $csv = Import-Csv '..\EmailTemplates.csv'
+    $csv | ForEach-Object{$cbTemplate.AddChild($_.Name)}
+
+    $bSelectTemplate.Add_Click({Select-Template})
+
+    function Select-Template{
+        $templateName = $cbTemplate.SelectedItem
+        $template = $csv | Where-Object{$_.Name -eq $templateName} | Select-Object -ExpandProperty Template
+        $subject = $csv | Where-Object{$_.Name -eq $templateName} | Select-Object -ExpandProperty Subject
+        $bodyBuffer = ''
+
+        $mail.Subject = "$subject"
+        $template | ForEach-Object {$bodyBuffer += $_}
+        $Mail.HTMLBody = "$(Get-EmailHeader) <br><br> $bodyBuffer $($Mail.HTMLBody)"
+    }
+
+    Function Get-EmailHeader{
+        $timeOfDay = if((Get-Date).Hour -lt 12){'morning'}else{'afternoon'}
+        return "Good $timeOfDay, $($user.GivenName),`n`n"
+    }
+    
+    $EmailWindow.ShowDialog()|out-null
+}
+
 $bSearch = $MainWindow.FindName("bSearch")
 $bSearch.Add_Click({Search-User})
 
@@ -305,5 +341,8 @@ $bSearchComputer.Add_Click({Search-Computer})
 
 $bShadow = $MainWindow.FindName("bShadow")
 $bShadow.Add_Click({Start-Shadow})
+
+$bSendEmail = $MainWindow.FindName('bSendEmail')
+$bSendEmail.Add_Click({Send-Email})
 
 $MainWindow.ShowDialog() | Out-Null
