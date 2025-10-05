@@ -302,13 +302,19 @@ function Send-Email{
 
     $cbTemplate = $EmailWindow.FindName("cbTemplate")
     $bSelectTemplate = $EmailWindow.FindName('bSelectTemplate')
+    $bAddTemplate = $EmailWindow.FindName('bAddTemplate')
+    $tbTemplateName = $EmailWindow.FindName('tbTemplateName')
+    $bDeleteTemplate = $EmailWindow.FindName('bDeleteTemplate')
 
     $csv = Import-Csv '..\EmailTemplates.csv'
     $csv | ForEach-Object{$cbTemplate.AddChild($_.Name)}
 
     $bSelectTemplate.Add_Click({Select-Template})
+    $bAddTemplate.Add_Click({Add-Template})
+    $bDeleteTemplate.Add_Click({Delete-Template})
 
     function Select-Template{
+        $mail.HTMLBody = ''
         $templateName = $cbTemplate.SelectedItem
         $template = $csv | Where-Object{$_.Name -eq $templateName} | Select-Object -ExpandProperty Template
         $subject = $csv | Where-Object{$_.Name -eq $templateName} | Select-Object -ExpandProperty Subject
@@ -323,7 +329,36 @@ function Send-Email{
         $timeOfDay = if((Get-Date).Hour -lt 12){'morning'}else{'afternoon'}
         return "Good $timeOfDay, $($user.GivenName),`n`n"
     }
-    
+
+    function Add-Template{
+        $newTemplate = [pscustomobject]@{
+            Name = $tbTemplateName.Text
+            Subject = $mail.Subject
+            Template = $mail.HTMLBody
+        }|ConvertTo-Csv
+
+        for($i = 2; $i -lt $newTemplate.Length; $i++){
+            $newTemplate[$i] | Out-File -FilePath '..\EmailTemplates.csv' -Append
+        }
+        $EmailWindow.Close()
+    }  
+
+    function Delete-Template{
+        $templateName = $cbTemplate.SelectedItem
+        $csv = Import-Csv -Path '..\EmailTemplates.csv'
+        $templates = [System.Collections.ArrayList]::new($csv)
+        
+        for($i = 0; $i -lt $templates.Count; $i++){
+            if($templates[$i].Name -eq $templateName){
+                $index = $i
+            }
+        }
+
+        $templates.RemoveAt($index)
+
+        $templates | ConvertTo-Csv | Out-File '..\EmailTemplates.csv'
+    }
+
     $EmailWindow.ShowDialog()|out-null
 }
 
@@ -344,5 +379,7 @@ $bShadow.Add_Click({Start-Shadow})
 
 $bSendEmail = $MainWindow.FindName('bSendEmail')
 $bSendEmail.Add_Click({Send-Email})
+
+
 
 $MainWindow.ShowDialog() | Out-Null

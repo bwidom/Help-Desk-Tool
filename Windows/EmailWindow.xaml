@@ -5,13 +5,14 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:EmailWindow"
         mc:Ignorable="d"
-        Title="MainWindow" Height="140" Width="340">
+        Title="Email Templates" Height="140" Width="470">
     <Grid>
-        <Label Content="Template:" HorizontalAlignment="Left" Height="29" Margin="10,10,0,0" VerticalAlignment="Top" Width="66"/>
-        <ComboBox x:Name="cbTemplate" HorizontalAlignment="Left" Height="22" Margin="111,14,0,0" VerticalAlignment="Top" Width="104"/>
-        <Label Content="Add Question:" HorizontalAlignment="Left" Height="30" Margin="10,53,0,0" VerticalAlignment="Top" Width="120"/>
-        <ComboBox x:Name="cbQuestion" HorizontalAlignment="Left" Height="22" Margin="111,56,0,0" VerticalAlignment="Top" Width="104"/>
-        <Button Content="Add" HorizontalAlignment="Left" Height="22" Margin="232,56,0,0" VerticalAlignment="Top" Width="73"/>
-	<Button x:Name="bSelectTemplate" Content="Select" HorizontalAlignment="Left" Height="22" Margin="232,14,0,0" VerticalAlignment="Top" Width="73"/>
+        <Label Content="Select Template:" HorizontalAlignment="Left" Height="29" Margin="10,10,0,0" VerticalAlignment="Top" Width="120"/>
+        <ComboBox x:Name="cbTemplate" HorizontalAlignment="Left" Height="22" Margin="120,14,0,0" VerticalAlignment="Top" Width="150"/>
+        <Label Content="Add Template:" HorizontalAlignment="Left" Height="30" Margin="10,53,0,0" VerticalAlignment="Top" Width="120"/>
+        <TextBox x:Name="tbTemplateName" HorizontalAlignment="Left" Height="22" Margin="120,56,0,0" VerticalAlignment="Top" Width="150"/>
+        <Button x:Name="bAddTemplate" Content="Add" HorizontalAlignment="Left" Height="22" Margin="280,56,0,0" VerticalAlignment="Top" Width="73"/>
+	<Button x:Name="bSelectTemplate" Content="Select" HorizontalAlignment="Left" Height="22" Margin="280,14,0,0" VerticalAlignment="Top" Width="73"/>
+	<Button x:Name="bDeleteTemplate" Content="Delete" HorizontalAlignment="Left" Height="22" Margin="365,14,0,0" VerticalAlignment="Top" Width="73"/>
     </Grid>
 </Window>
