@@ -155,9 +155,10 @@ function Create-PasswordWindow{
         function Change-UserPassword{
             Write-Host "Changing Password of $($tbSAMAccountName.Text) to $($tbNewPassword.Text)"
             $u = Set-ADAccountPassword -Identity $tbSAMAccountName.Text -NewPassword (ConvertTo-SecureString -AsPlainText $tbNewPassword.Text -Force) -PassThru           
-            Set-ADUser -Identity $tbSAMAccountName.Text -ChangePasswordAtLogon $true
-            [System.Windows.Forms.MessageBox]::Show("Password Changed")
-            Write-Host "$(($u.Name)) password changed to $($tbNewPassword.Text). Password must change at login"
+            if($passwordSetting.makePasswordTemporary){
+                Set-ADUser -Identity $tbSAMAccountName.Text -ChangePasswordAtLogon $true
+            }            
+            [System.Windows.Forms.MessageBox]::Show("Password Changed")            
             Search-User
             $ChangePasswordWindow.Close()
         }
@@ -269,7 +270,7 @@ function Search-Computer{
             }
             $tbComputerName.Text = $computerName.Name            
             $tbFreeDiskSpace.Text = "$((Get-WMIObject -ComputerName $computerName.Name -ClassName Win32_LogicalDisk | Where-Object {$_.DeviceID -eq 'C:'} | Select-Object  @{Name="FreeSpacePercent"; Expression={[Math]::Round(($_.FreeSpace / $_.Size) * 100)}}).FreeSpacePercent)%"
-            $tbMemoryUsage.Text = "$((Get-Counter -ComputerName $computerName.Name -Counter '\Memory\Available MBytes').CounterSamples.CookedValue) MB"
+            #$tbMemoryUsage.Text = "$((Get-Counter -ComputerName $computerName.Name -Counter '\Memory\Available MBytes').CounterSamples.CookedValue) MB"
             $tbLastBootTime.Text = [Management.ManagementDateTimeConverter]::ToDateTime((Get-WmiObject -ComputerName $computerName.Name -Class Win32_OperatingSystem).LastBootUpTime)
         }else{
             [System.Windows.Forms.MessageBox]::Show('No computer selected.')
@@ -344,19 +345,35 @@ function Send-Email{
     }  
 
     function Delete-Template{
-        $templateName = $cbTemplate.SelectedItem
-        $csv = Import-Csv -Path '..\EmailTemplates.csv'
-        $templates = [System.Collections.ArrayList]::new($csv)
+        $confirmEmailDeleteWindow = .\CreateWindow.ps1 -Path '..\Windows\ConfirmEmailDeleteWindow.xaml'
+        $bConfirmDelete = $confirmEmailDeleteWindow.FindName('bConfirm')
+        $bCancelDelete = $confirmEmailDeleteWindow.FindName('bCancel')
+        $lDeleteEmailPrompt = $confirmEmailDeleteWindow.FindName('lDeleteEmailPrompt')
+        $lDeleteEmailPrompt.Content = "Are you sure you want to delete email template $($cbTemplate.SelectedItem)?"
+
+        $bConfirmDelete.Add_Click(
+        {
+                $templateName = $cbTemplate.SelectedItem
+                $csv = Import-Csv -Path '..\EmailTemplates.csv'
+                $templates = [System.Collections.ArrayList]::new($csv)
         
-        for($i = 0; $i -lt $templates.Count; $i++){
-            if($templates[$i].Name -eq $templateName){
-                $index = $i
-            }
+                for($i = 0; $i -lt $templates.Count; $i++){
+                    if($templates[$i].Name -eq $templateName){
+                        $index = $i
+                    }
+                }
+
+                $templates.RemoveAt($index)
+
+                $templates | ConvertTo-Csv | Out-File '..\EmailTemplates.csv'
+                $confirmEmailDeleteWindow.close()                
+                $EmailWindow.close()
         }
+        )
 
-        $templates.RemoveAt($index)
+        $bCancelDelete.Add_Click({$confirmEmailDeleteWindow.close()})
 
-        $templates | ConvertTo-Csv | Out-File '..\EmailTemplates.csv'
+        $confirmEmailDeleteWindow.ShowDialog() | Out-Null
     }
 
     $EmailWindow.ShowDialog()|out-null
