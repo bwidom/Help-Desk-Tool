@@ -1,0 +1,14 @@
+?<Window x:Class="ConfirmEmailDeleteWindow.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:ConfirmEmailDeleteWindow"
+        mc:Ignorable="d"
+        Title="Delete Template" Height="115" Width="370">
+    <Grid Background="#FFB8AFAF">
+        <Label x:Name="lChangePasswordPrompt" Content="Label" HorizontalAlignment="Center" Height="29" Margin="0,8,0,0" VerticalAlignment="Top" Width="350" HorizontalContentAlignment="Center" FontFamily="Leelawadee UI"/>
+        <Button x:Name="bConfirm" Content="Confirm" HorizontalAlignment="Left" Height="25" Margin="62,58,0,0" VerticalAlignment="Top" Width="109" FontFamily="Leelawadee UI"/>
+        <Button x:Name="bCancel" Content="Cancel" HorizontalAlignment="Left" Height="24" Margin="200,58,0,0" VerticalAlignment="Top" Width="109" FontFamily="Leelawadee"/>
+    </Grid>
+</Window>
