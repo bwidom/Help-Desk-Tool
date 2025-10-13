@@ -1,58 +1,56 @@
 ﻿param(
-    $ComputerName
+    $ComputerName = "localhost"
 )
 
 $ErrorSummary = New-Object System.Collections.ArrayList
 
-function Check-LocalTime{
-    $properties = @("Day",
-    "DayOfWeek",
-    "Hour",
-    "Minute",
-    "Month",
-    "Quarter",
-    "WeekInMonth",
-    "Year")
+#Check if remote computer has same date and time as local computer.
+$properties = @("Day",
+"DayOfWeek",
+"Hour",
+"Minute",
+"Month",
+"Quarter",
+"WeekInMonth",
+"Year")
     
-    $localComputerDateTime = Get-WmiObject -Class Win32_LocalTime -Property $properties
-    $remoteComputerDateTime = Get-WmiObject -Class Win32_LocalTime -Property $properties -ComputerName $ComputerName
+$localComputerDateTime = Get-WmiObject -Class Win32_LocalTime -Property $properties
+$remoteComputerDateTime = Get-WmiObject -Class Win32_LocalTime -Property $properties -ComputerName $ComputerName
 
-    if($localComputerDateTime -ne $remoteComputerDateTime){
-        $ErrorSummary.Add("The date or time of the remote computer don't match the local machine.") | Out-Null
-    }
+if($localComputerDateTime -ne $remoteComputerDateTime){
+    $ErrorSummary.Add("The date or time of the remote computer don't match the local machine.") | Out-Null
 }
 
-function Check-DiskSpace{
-    $freeSpaceOnCDrive = Get-Counter -Counter "\LogicalDisk(c:)\% Free Space" -ComputerName $ComputerName -MaxSamples 1 | Select-Object -ExpandProperty CounterSamples |Select-Object -ExpandProperty CookedValue 
+#Check that C drive has more than 15% free space
+$freeSpaceOnCDrive = Get-Counter -Counter "\LogicalDisk(c:)\% Free Space" -ComputerName $ComputerName -MaxSamples 1 | Select-Object -ExpandProperty CounterSamples |Select-Object -ExpandProperty CookedValue 
     
-    if($freeSpaceOnCDrive -lt 15){
-        $ErrorSummary.Add("The C: drive on $ComputerName has $freeSpaceOnCDrive free space on the C: drive. Consider getting more storage.") | Out-Null
-    }
+if($freeSpaceOnCDrive -lt 15){
+    $ErrorSummary.Add("The C: drive on $ComputerName has $freeSpaceOnCDrive free space on the C: drive. Consider getting more storage.") | Out-Null
 }
 
-function Check-PhysicalDiskIdleTime{
-    $diskIdleTime = Get-Counter -Counter "\PhysicalDisk(_total)\% Idle Time" -ComputerName $ComputerName -MaxSamples 1 | Select-Object -ExpandProperty CounterSamples |Select-Object -ExpandProperty CookedValue
 
-    if($diskIdleTime -lt 20){
-        $ErrorSummary.Add("Your disk system is saturated. You should consider replacing the current disk system with a faster one.") | Out-Null
-    }
+
+
+#Check if amount of time disk is idle is below 20%
+$diskIdleTime = Get-Counter -Counter "\PhysicalDisk(_total)\% Idle Time" -ComputerName $ComputerName -MaxSamples 1 | Select-Object -ExpandProperty CounterSamples |Select-Object -ExpandProperty CookedValue
+if($diskIdleTime -lt 20){
+    $ErrorSummary.Add("Your disk system is saturated. You should consider replacing the current disk system with a faster one.") | Out-Null
 }
+
 
 #Check if average disk read time is longer than 25 milliseconds
-function Check-AverageDiskReadTime{
-    $averageDiskReadSeconds = Get-Counter -Counter "\PhysicalDisk(_total)\Avg. Disk sec/Read" -ComputerName $ComputerName -MaxSamples 1 | Select-Object -ExpandProperty CounterSamples |Select-Object -ExpandProperty CookedValue
-    if($averageDiskReadSeconds -gt .025){
-        $ErrorSummary.Add("The disk system is experiencing latency when reading from disk.") | Out-Null
-    }
+$averageDiskReadSeconds = Get-Counter -Counter "\PhysicalDisk(_total)\Avg. Disk sec/Read" -ComputerName $ComputerName -MaxSamples 1 | Select-Object -ExpandProperty CounterSamples |Select-Object -ExpandProperty CookedValue
+if($averageDiskReadSeconds -gt .025){
+    $ErrorSummary.Add("The disk system is experiencing latency when reading from disk.") | Out-Null
 }
 
+
 #Check if average disk write time is longer than 25 milliseconds
-function Check-AverageDiskWriteTime{
-    $averageDiskWriteSeconds = Get-Counter -Counter "\PhysicalDisk(_total)\Avg. Disk sec/Write" -ComputerName $ComputerName -MaxSamples 1 | Select-Object -ExpandProperty CounterSamples |Select-Object -ExpandProperty CookedValue
-    if($averageDiskWriteSeconds -gt .025){
-        $ErrorSummary.Add("The disk system is experiencing latency when writing to disk.") | Out-Null
-    }
+$averageDiskWriteSeconds = Get-Counter -Counter "\PhysicalDisk(_total)\Avg. Disk sec/Write" -ComputerName $ComputerName -MaxSamples 1 | Select-Object -ExpandProperty CounterSamples |Select-Object -ExpandProperty CookedValue
+if($averageDiskWriteSeconds -gt .025){
+    $ErrorSummary.Add("The disk system is experiencing latency when writing to disk.") | Out-Null
 }
+
 
 #Check if amount of memory that file system cache uses is above 300 MB.
 $memoryCacheBytes = (Get-counter "\Memory\Cache Bytes" -ComputerName $ComputerName | Select-Object -ExpandProperty CounterSamples | Select-Object -ExpandProperty CookedValue)/1MB
@@ -128,11 +126,6 @@ if($netInterfaceOutputQueue -gt 2){
     $ErrorSummary.Add('The network interface output queue is full. The network interface is oversaturated.') | Out-Null
 }
 
-Check-LocalTime
-Check-DiskSpace
-Check-PhysicalDiskIdleTime
-Check-AverageDiskReadTime
-Check-AverageDiskWriteTime
 
 ForEach($message in $ErrorSummary){
     Write-Host $message
