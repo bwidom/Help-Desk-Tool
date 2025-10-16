@@ -1,4 +1,15 @@
-﻿$MainWindow = .\CreateWindow.ps1 -Path '../Windows/MainWindow.xaml'
+﻿<#
+.SYNOPSIS
+	App for help desk techs
+.DESCRIPTION
+	Creates a window for managing user accounts, and collecting user and computer info.
+.EXAMPLE
+	PS> ./helpdesktool.ps1
+.NOTES
+	Author: Brian Widom
+#>
+
+$MainWindow = .\CreateWindow.ps1 -Path '../Windows/MainWindow.xaml'
 
 $dgAccountInfo = $MainWindow.FindName("dgAccountInfo")
 $cbSearchCriteria = $MainWindow.FindName("cbSearchCriteria")

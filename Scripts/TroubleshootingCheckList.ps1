@@ -1,4 +1,28 @@
-﻿param(
+﻿<#
+.SYNOPSIS
+
+Troubleshoot remote or local computer for performance issues.
+
+.DESCRIPTION
+
+A script that collects performance counters and other metrics from remote computers or 
+the local computer and compares them to benchmarks to troubleshoot performance issues 
+and attempt to identify resource bottlenecks. Performance counter benchmarks based on 
+Microsoft Learn document for troubleshooting: 
+https://learn.microsoft.com/en-us/training/modules/monitor-troubleshoot-windows-client-performance/4-monitor-windows-client-performance
+
+.PARAMETER ComputerName
+
+Name of computer to troubleshoot.
+
+.EXAMPLE
+
+PS> .\troubleshootingchecklist.ps1 -ComputerName Client1
+The processor has an excessive amount of hardware interruptions. There could be a hardware issue.
+
+#>
+
+param(
     $ComputerName = "localhost"
 )
 
@@ -129,4 +153,8 @@ if($netInterfaceOutputQueue -gt 2){
 
 ForEach($message in $ErrorSummary){
     Write-Host $message
+}
+
+if($ErrorSummary.Count -eq 0){
+    Write-Host 'No issues detected'
 }
