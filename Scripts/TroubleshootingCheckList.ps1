@@ -28,6 +28,20 @@ param(
 
 $ErrorSummary = New-Object System.Collections.ArrayList
 
+class TroubleshootingCheck{
+    [string]$Counter    
+    [string]$CorrectAmount
+    [string]$ComputerAmount
+    [string]$Message    
+
+    TroubleshootingCheck([string]$message, [string]$correctAmount, [string]$computerAmount, [string]$counter){
+        $this.counter = $counter
+        $this.computerAmount = $computerAmount
+        $this.correctAmount = $correctAmount
+        $this.message = $message        
+    }
+}
+
 #Check if remote computer has same date and time as local computer.
 $properties = @("Day",
 "DayOfWeek",
@@ -42,65 +56,121 @@ $localComputerDateTime = Get-WmiObject -Class Win32_LocalTime -Property $propert
 $remoteComputerDateTime = Get-WmiObject -Class Win32_LocalTime -Property $properties -ComputerName $ComputerName
 
 if($localComputerDateTime -ne $remoteComputerDateTime){
-    $ErrorSummary.Add("The date or time of the remote computer don't match the local machine.") | Out-Null
+    #$ErrorSummary.Add("The date or time of the remote computer don't match the local machine.") | Out-Null
 }
 
 #Check that C drive has more than 15% free space
 $freeSpaceOnCDrive = Get-Counter -Counter "\LogicalDisk(c:)\% Free Space" -ComputerName $ComputerName -MaxSamples 1 | Select-Object -ExpandProperty CounterSamples |Select-Object -ExpandProperty CookedValue 
     
 if($freeSpaceOnCDrive -lt 15){
-    $ErrorSummary.Add("The C: drive on $ComputerName has $freeSpaceOnCDrive free space on the C: drive. Consider getting more storage.") | Out-Null
+    $ErrorSummary.Add(
+        [TroubleshootingCheck]::new(
+            '\LogicalDisk(c:)\% Free Space',            
+            '15%',
+            "$freeSpaceonCDrive", 
+            'The C: drive is low on free space. Consider getting more storage.'           
+        )
+    )| Out-Null
 }
-
-
 
 
 #Check if amount of time disk is idle is below 20%
 $diskIdleTime = Get-Counter -Counter "\PhysicalDisk(_total)\% Idle Time" -ComputerName $ComputerName -MaxSamples 1 | Select-Object -ExpandProperty CounterSamples |Select-Object -ExpandProperty CookedValue
 if($diskIdleTime -lt 20){
-    $ErrorSummary.Add("Your disk system is saturated. You should consider replacing the current disk system with a faster one.") | Out-Null
+    $ErrorSummary.Add(
+        [TroubleshootingCheck]::new(            
+            'Disk Idle Time',
+            '20%',
+            "$diskIdleTime",            
+            'Your disk system is saturated. You should consider replacing the current disk system with a faster one.'
+        )        
+    ) | Out-Null
 }
 
 
 #Check if average disk read time is longer than 25 milliseconds
 $averageDiskReadSeconds = Get-Counter -Counter "\PhysicalDisk(_total)\Avg. Disk sec/Read" -ComputerName $ComputerName -MaxSamples 1 | Select-Object -ExpandProperty CounterSamples |Select-Object -ExpandProperty CookedValue
 if($averageDiskReadSeconds -gt .025){
-    $ErrorSummary.Add("The disk system is experiencing latency when reading from disk.") | Out-Null
+    $ErrorSummary.Add(
+        [TroubleshootingCheck]::new(            
+            '\PhysicalDisk(_total)\Avg. Disk sec/Read',
+            '25 milliseconds',
+            "$averageDiskReadSeconds",            
+            'The disk system is experiencing latency when reading from disk.'
+        )        
+    ) | Out-Null    
 }
 
 
 #Check if average disk write time is longer than 25 milliseconds
 $averageDiskWriteSeconds = Get-Counter -Counter "\PhysicalDisk(_total)\Avg. Disk sec/Write" -ComputerName $ComputerName -MaxSamples 1 | Select-Object -ExpandProperty CounterSamples |Select-Object -ExpandProperty CookedValue
 if($averageDiskWriteSeconds -gt .025){
-    $ErrorSummary.Add("The disk system is experiencing latency when writing to disk.") | Out-Null
+    $ErrorSummary.Add(
+        [TroubleshootingCheck]::new(            
+            '\PhysicalDisk(_total)\Avg. Disk sec/Write',
+            '25 milliseconds',
+            "$averageDiskWriteSeconds",            
+            'The disk system is experiencing latency when writing to disk.'
+        )        
+    ) | Out-Null    
 }
 
 
 #Check if amount of memory that file system cache uses is above 300 MB.
 $memoryCacheBytes = (Get-counter "\Memory\Cache Bytes" -ComputerName $ComputerName | Select-Object -ExpandProperty CounterSamples | Select-Object -ExpandProperty CookedValue)/1MB
 if($memoryCacheBytes -gt 300){
-    $ErrorSummary.Add("Memory cache is high. There could be a disk bottleneck.") | Out-Null
+    $ErrorSummary.Add(
+        [TroubleshootingCheck]::new(            
+            '\Memory\Cache Bytes',
+            '300 MB',
+            "$memoryCacheBytes",            
+            'Memory cache is high. There could be a disk bottleneck.'
+        )        
+    ) | Out-Null    
 }
 
 #Check if the ratio of committed bytes to the commit limit is above 80%
 $memoryPercentCommittedBytes = Get-Counter "\Memory\% Committed Bytes In Use" -ComputerName $ComputerName | Select-Object -ExpandProperty CounterSamples | Select-Object -ExpandProperty CookedValue
 if($memoryPercentCommittedBytes -gt 80){
-    $ErrorSummary.Add("The percent of committed byes is high. This indicates insufficient memory.") | Out-Null
+    $ErrorSummary.Add(
+        [TroubleshootingCheck]::new(            
+            '\Memory\% Committed Bytes In Use',
+            '80%',
+            "$memoryPercentCommittedBytes",            
+            'The percent of committed byes is high. This indicates insufficient memory.'
+        )        
+    ) | Out-Null    
 }
 
 #Check if available memory is less than 5% of total physical memory
 $memoryAvailableMBytes = Get-Counter "\Memory\Available MBytes" -ComputerName $ComputerName | Select-Object -ExpandProperty CounterSamples | Select-Object -ExpandProperty CookedValue
 $totalPhysicalMemory = Get-WmiObject Win32_ComputerSystem -Property TotalPhysicalMemory -ComputerName $ComputerName | Select-Object -ExpandProperty TotalPhysicalMemory
 if(($memoryAvailableMBytes * 1048576) -lt ($totalPhysicalMemory * 0.05)){
-    $ErrorSummary.Add("The amount of available memory is insufficient for running processes.") | Out-Null
+    $ErrorSummary.Add(
+        [TroubleshootingCheck]::new(            
+            '\Memory\Available MBytes',
+            '5%',
+            "$($memoryAvailableMBytes * 1048576)",            
+            'The amount of available memory is insufficient for running processes.'
+        ) 
+    ) | Out-Null    
 }
 
 #Check of number of page table entries not in use by system is less than 5000
 $memoryFreePageTableEntries = Get-Counter '\Memory\Free System Page Table Entries' -ComputerName $ComputerName | Select-Object -ExpandProperty CounterSamples | Select-Object -ExpandProperty CookedValue
 if($memoryFreePageTableEntries -lt 5000){
+    $ErrorSummary.Add(
+        [TroubleshootingCheck]::new(            
+            '\Memory\Free System Page Table Entries',
+            '5000',
+            "$memoryFreePageTableEntries",            
+            'The amount of free page table entries is low. There could be a memory leak.'
+        ) 
+    ) | Out-Null  
     $ErrorSummary.add("The amount of free page table entries is low. There could be a memory leak.") | Out-Null
 }
 
+<#
 #Check if the pool non-paged bytes is greater than 175 MB
 $memoryNonPagedBytes = Get-Counter '\Memory\Pool Nonpaged Bytes'-ComputerName $ComputerName | Select-Object -ExpandProperty CounterSamples | Select-Object -ExpandProperty CookedValue
 if($memoryNonPagedBytes -gt 175MB){
@@ -151,9 +221,13 @@ if($netInterfaceOutputQueue -gt 2){
 }
 
 
+
 ForEach($message in $ErrorSummary){
     Write-Host $message
 }
+#>
+
+$ErrorSummary | Out-GridView
 
 if($ErrorSummary.Count -eq 0){
     Write-Host 'No issues detected'
