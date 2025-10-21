@@ -105,7 +105,7 @@ function Search-User{
 
     if($countUser.Count -eq 1){
         for($i = 0; $i -lt $dcs.Count; $i++){             
-                $userInfoOnServer = @(Get-ADUser -Server $dcs[$i] -Filter $filter -Properties $properties -SearchBase $domainDistinguishedName)
+                $userInfoOnServer = @(Get-ADUser -Server $dcs[$i] -Filter $filter -Properties $properties -SearchBase $countUser[0].DistinguishedName)                
                 Set-Rows $i `
                     $(if($userInfoOnServer.LastBadPasswordAttempt){$userInfoOnServer.LastBadPasswordAttempt}else{'None'}) `
                     $(if($userInfoOnServer.PasswordLastSet){$userInfoOnServer.PasswordLastSet}else{"Change Password"}) `
@@ -124,6 +124,9 @@ function Search-User{
         $tbEmployeeID.Text = "User Not Found"
         $tbSAMAccountName.Text = ""
     }elseif($countUser.Count -gt 1){
+        $tbEmployeeID.Text = ""
+        $tbSAMAccountName.Text = ""
+        $iDisabledIcon.Visibility="Hidden"
         Create-SelectUserWindow
     }
 }
@@ -202,13 +205,16 @@ function Create-SelectUserWindow{
     $bCancel = $SelectUserWindow.FindName('bCancel')
     $bCancel.Add_Click({
         $SelectUserWindow.Close()
-        $lEmployeeID.Text = ''
-        $lSAMAccountName.Text = ''
+        $tbEmployeeID.Text = ''
+        $tbSAMAccountName.Text = ''
     })
 
     #Select user from window displaying list of users retrieved from Search-User command. When user selected, their
     #information is filled in the main window.
     function Select-User{
+        if(!$lbUsers.SelectedItem){
+            throw "No user selected"
+        }
         $tbEmployeeID.Text = "Collecting data..."
         $tbSAMAccountName.Text = ""
         $user = $lbUsers.SelectedItem
@@ -223,7 +229,7 @@ function Create-SelectUserWindow{
                     $(if($userInfoOnServer.BadLogonCount){$userInfoOnServer.BadLogonCount}else{0}) `
                     $($dcs[$i].Name)
         }
-        if($countUser[0].Enabled){$iDisabledIcon.Visibility='Hidden'}else{$iDisabledIcon.Visibility='Visible'}
+        if($userInfoOnServer.Enabled){$iDisabledIcon.Visibility='Hidden'}else{$iDisabledIcon.Visibility='Visible'}
         $tbEmployeeID.Text = $userInfoOnServer.EmployeeID
         $tbSAMAccountName.Text = $userInfoOnServer.SAMAccountName
         $SelectUserWindow.Close()
@@ -390,6 +396,44 @@ function Send-Email{
     $EmailWindow.ShowDialog()|out-null
 }
 
+function Create-UserInfoWindow{
+    if($tbSAMAccountName.Text){
+        $UserInfoWindow = .\CreateWindow.ps1 -Path '..\Windows\UserInfoWindow.xaml'
+        $UserInfoWindow.Title = $tbSAMAccountName.Text
+        $UserInfoWindow.Owner = $MainWindow
+        $UserInfoWindow.WindowStartupLocation = 'CenterOwner'
+
+        $tbEmailAddress = $UserInfoWindow.FindName('tbEmailAddress')
+        $tbDescription = $UserInfoWindow.FindName('tbDescription')
+        $tbAddress = $UserInfoWindow.FindName('tbAddress')
+        $tbTelephone = $UserInfoWindow.FindName('tbTelephone')
+        $tbMobilePhone = $UserInfoWindow.FindName('tbMobilePhone')
+        $tbOtherLoginWorkstation = $UserInfoWindow.FindName('tbOtherLoginWorkstation')
+        $tbCanonicalName = $UserInfoWindow.FindName('tbCanonicalName')
+        $tbProfilePath = $UserInfoWindow.FindName('tbProfilePath')
+        $tbExpiresOn = $UserInfoWindow.FindName('tbExpiresOn')
+        $lbMemberOf = $UserInfoWindow.FindName('lbMemberOf')
+        
+        $Properties = @('EmailAddress','Description','Office','telephoneNumber','MobilePhone','otherLoginWorkstations','CanonicalName','HomeDirectory','AccountExpirationDate','MemberOf')
+
+        $User = Get-ADUser -Filter {SAMAccountName -eq $tbSAMAccountName.Text} -Properties $Properties
+        $tbAddress.Text = $User.Office
+        $tbDescription.Text = $User.Description
+        $tbEmailAddress.Text = $User.EmailAddress
+        $tbTelephone.Text = $User.telephoneNumber
+        $tbMobilePhone.Text = $User.MobilePhone
+        $tbOtherLoginWorkstation.Text = $User.otherLoginWorkstations
+        $tbCanonicalName.Text = $User.CanonicalName
+        $tbProfilePath.Text = $User.HomeDirectory
+        $tbExpiresOn.Text = $User.AccountExpirationDate        
+        (Get-ADUser -Filter {SAMAccountName -eq $tbSAMAccountName.Text} -Properties MemberOf).MemberOf | ForEach-Object {$lbMemberOf.AddChild(($_ -split ',')[0].Substring(3))}
+
+        $UserInfoWindow.ShowDialog() | Out-Null
+    }else{
+        Write-Host "No user Selected"
+    }
+}
+
 $bSearch = $MainWindow.FindName("bSearch")
 $bSearch.Add_Click({Search-User})
 
@@ -408,6 +452,7 @@ $bShadow.Add_Click({Start-Shadow})
 $bSendEmail = $MainWindow.FindName('bSendEmail')
 $bSendEmail.Add_Click({Send-Email})
 
-
+$bMoreUserInfo = $MainWindow.FindName('bMoreUserInfo')
+$bMoreUserInfo.Add_Click({Create-UserinfoWindow})
 
 $MainWindow.ShowDialog() | Out-Null
