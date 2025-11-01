@@ -166,58 +166,113 @@ if($memoryFreePageTableEntries -lt 5000){
             "$memoryFreePageTableEntries",            
             'The amount of free page table entries is low. There could be a memory leak.'
         ) 
-    ) | Out-Null  
-    $ErrorSummary.add("The amount of free page table entries is low. There could be a memory leak.") | Out-Null
+    ) | Out-Null      
 }
 
-<#
+
 #Check if the pool non-paged bytes is greater than 175 MB
 $memoryNonPagedBytes = Get-Counter '\Memory\Pool Nonpaged Bytes'-ComputerName $ComputerName | Select-Object -ExpandProperty CounterSamples | Select-Object -ExpandProperty CookedValue
 if($memoryNonPagedBytes -gt 175MB){
-    $ErrorSummary.Add("There amount of non-paged bytes is high. There could be a memory leak.") | Out-Null
+    $ErrorSummary.Add(
+        [TroubleshootingCheck]::new(            
+            '\Memory\Pool Nonpaged Bytes',
+            '175MB',
+            "$memoryNonPagedBytes",            
+            'There amount of non-paged bytes is high. There could be a memory leak.'
+        ) 
+    ) | Out-Null       
 }
 
 #Check if pool paged bytes is greater than 250 MB.
 $memoryPagedBytes = Get-Counter '\Memory\Pool Paged Bytes' -ComputerName $ComputerName | Select-Object -ExpandProperty CounterSamples | Select-Object -ExpandProperty CookedValue
 if($memoryPagedBytes -gt 250MB){
-    $ErrorSummary.Add("There amount of paged bytes is high. There could be a memory leak.") | Out-Null
+    $ErrorSummary.Add(
+        [TroubleshootingCheck]::new(            
+            '\Memory\Pool Paged Bytes',
+            '250MB',
+            "$memoryPagedBytes",            
+            'There amount of paged bytes is high. There could be a memory leak.'
+        ) 
+    ) | Out-Null     
 }
 
 #Check if amount of pages per second is greater than 1000
 $memoryPagesPerSecond = Get-Counter '\Memory\Pages/sec' -ComputerName $ComputerName | Select-Object -ExpandProperty CounterSamples | Select-Object -ExpandProperty CookedValue
 if($memoryPagesPerSecond -gt 1000){
-    $ErrorSummary.Add('There is excessive paging. There may be a memory leak.') | Out-Null
+    $ErrorSummary.Add(
+        [TroubleshootingCheck]::new(            
+            '\Memory\Pages/sec',
+            '1000',
+            "$memoryPagesPerSecond",            
+            'There is excessive paging. There may be a memory leak.'
+        ) 
+    ) | Out-Null    
 }
 
 #Check if percent of processor time executing non idle threads is greater than 85%.
 $processorPercentTimeBusy = Get-Counter '\processor(_total)\% processor time' -ComputerName $ComputerName | Select-Object -ExpandProperty CounterSamples | Select-Object -ExpandProperty CookedValue
 if($processorPercentTimeBusy -gt 85){
-    $ErrorSummary.Add('The processor is overwhelmed. The system may need a faster processor.') | Out-Null
+    $ErrorSummary.Add(
+        [TroubleshootingCheck]::new(            
+            '\processor(_total)\% processor time',
+            '85%',
+            "$processorPercentTimeBusy",            
+            'The processor is overwhelmed. The system may need a faster processor.'
+        ) 
+    ) | Out-Null    
 }
 
 #Check if the percent of time processor spends in user mode is greater then 85%.
 $processorPercentUserMode = Get-Counter '\Processor(_total)\% User Time' -ComputerName $ComputerName | Select-Object -ExpandProperty CounterSamples | Select-Object -ExpandProperty CookedValue
 if($processorPercentUserMode -gt 85){
-    $ErrorSummary.Add('The processor is overwhelmed with applications. Consider ending process intensive applications.') | Out-Null
+    $ErrorSummary.Add(
+        [TroubleshootingCheck]::new(            
+            '\Processor(_total)\% User Time',
+            '85%',
+            "$processorPercentUserMode",            
+            'The processor is overwhelmed with applications. Consider ending process intensive applications.'
+        ) 
+    ) | Out-Null    
 }
 
 #Check if the percent of time processor spends handling hardware interrupts is greater then 15%.
 $processorPercentInterrupts = Get-Counter '\Processor(_total)\% Interrupt Time' -ComputerName $ComputerName | Select-Object -ExpandProperty CounterSamples | Select-Object -ExpandProperty CookedValue
 if($processorPercentInterrupts -gt 15){
-    $ErrorSummary.Add('The processor has an excessive amount of hardware interruptions. There could be a hardware issue.') | Out-Null
+    $ErrorSummary.Add(
+        [TroubleshootingCheck]::new(            
+            '\Processor(_total)\% Interrupt Time',
+            '15%',
+            "$processorPercentInterrupts",            
+            'The processor has an excessive amount of hardware interruptions. There could be a hardware issue.'
+        ) 
+    ) | Out-Null    
 }
 
 #Check if traffic through network interface is more than 70% used.
 $netInterfaceTotalBytesPerSecond = Get-WmiObject 'Win32_NetworkAdapter' -Filter {Speed != null} | Select-Object -ExpandProperty Speed
 $netInterfaceBytesUsedPerSecond = Get-Counter '\Network Interface(*)\Bytes Total/sec' -ComputerName $ComputerName | Select-Object -ExpandProperty CounterSamples | Select-Object -ExpandProperty CookedValue
 if((($netInterfaceBytesUsedPerSecond/$netInterfaceTotalBytesPerSecond) * 100) -gt 70){
-    $ErrorSummary.Add('The network interface is oversaturated.') | Out-Null
+    $ErrorSummary.Add(
+        [TroubleshootingCheck]::new(            
+            '\Network Interface(*)\Bytes Total/sec',
+            '70',
+            "$(($netInterfaceBytesUsedPerSecond/$netInterfaceTotalBytesPerSecond) * 100)",            
+            'The network interface is oversaturated.'
+        ) 
+    ) | Out-Null    
 }
 
 #Check if network output queue is greater than 2 packets.
 $netInterfaceOutputQueue = Get-Counter '\Network Interface(*)\Output Queue Length' -ComputerName $ComputerName | Select-Object -ExpandProperty CounterSamples | Select-Object -ExpandProperty CookedValue
 if($netInterfaceOutputQueue -gt 2){
-    $ErrorSummary.Add('The network interface output queue is full. The network interface is oversaturated.') | Out-Null
+    $ErrorSummary.Add(
+        [TroubleshootingCheck]::new(            
+            '\Network Interface(*)\Output Queue Length',
+            '2',
+            "$netInterfaceOutputQueue",            
+            'The network interface output queue is full. The network interface is oversaturated.'
+        ) 
+    ) | Out-Null    
 }
 
 
@@ -225,7 +280,7 @@ if($netInterfaceOutputQueue -gt 2){
 ForEach($message in $ErrorSummary){
     Write-Host $message
 }
-#>
+
 
 $ErrorSummary | Out-GridView
 

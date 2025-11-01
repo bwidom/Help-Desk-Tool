@@ -121,7 +121,8 @@ function Search-User{
         for($i = 0; $i -lt $dcs.Count; $i++){       
             Set-Rows -RowIndex $i      
         }
-        $tbEmployeeID.Text = "User Not Found"
+        throw "User not found"
+        $tbEmployeeID.Text = ""
         $tbSAMAccountName.Text = ""
     }elseif($countUser.Count -gt 1){
         $tbEmployeeID.Text = ""
@@ -139,7 +140,7 @@ function Unlock-User{
         }
         Search-User
     }else{
-        Write-Host "No User Selected"
+        throw "No User Selected"
     }
 }
 
@@ -184,6 +185,8 @@ function Create-PasswordWindow{
         $bCancel.Add_Click({$ChangePasswordWindow.Close()})
 
         $ChangePasswordWindow.ShowDialog() | Out-Null
+    }else{
+        throw "No user selected"
     }
 }
 
@@ -258,44 +261,41 @@ function Search-Computer{
     $tbFreeDiskSpace.Text = ''
     $tbMemoryUsage.Text = ''
     $tbLastBootTime.Text = ''
-    try{
-        if($tbComputerSearch.Text){
-            $computerName = @(Get-ADComputer -Identity $tbComputerSearch.Text)
+    
+    if($tbComputerSearch.Text){
+        $computerName = @(Get-ADComputer -Identity $tbComputerSearch.Text)
 
-            $alAvailableSessions = [System.Collections.ArrayList]::new()
+        $alAvailableSessions = [System.Collections.ArrayList]::new()
             
-            #Get sessions on computer from native Windows command qwinsta as string
-            #Parse name, id and state of the active sessions from the string by getting 
-            #index of where each of these fields are on each row.
-            $sessions = (qwinsta /server $tbComputerSearch.Text).split("`n")
-            $usernameIndex = $sessions[0].IndexOf('USERNAME')
-            $IDIndex = $sessions[0].IndexOf('ID') - 2
-            $stateIndex = $sessions[0].IndexOf('STATE')
+        #Get sessions on computer from native Windows command qwinsta as string
+        #Parse name, id and state of the active sessions from the string by getting 
+        #index of where each of these fields are on each row.
+        $sessions = (qwinsta /server $tbComputerSearch.Text).split("`n")
+        $usernameIndex = $sessions[0].IndexOf('USERNAME')
+        $IDIndex = $sessions[0].IndexOf('ID') - 2
+        $stateIndex = $sessions[0].IndexOf('STATE')
 
-            for($i = 1; $i -lt $sessions.count; $i++){
-                if($sessions[$i].Substring($usernameIndex,1).Trim() -ne [string]::Empty){
-                    [void] $alAvailableSessions.Add([pscustomObject]@{
-                        sessionName = $sessions[$i].Substring($usernameIndex,20).Trim()
-                        sessionID = $sessions[$i].Substring($IDIndex,5).Trim()
-                        sessionState = $sessions[$i].Substring($stateIndex,6).Trim()
-                    })
-                }
+        for($i = 1; $i -lt $sessions.count; $i++){
+            if($sessions[$i].Substring($usernameIndex,1).Trim() -ne [string]::Empty){
+                [void] $alAvailableSessions.Add([pscustomObject]@{
+                    sessionName = $sessions[$i].Substring($usernameIndex,20).Trim()
+                    sessionID = $sessions[$i].Substring($IDIndex,5).Trim()
+                    sessionState = $sessions[$i].Substring($stateIndex,6).Trim()
+                })
             }
-
-            foreach($session in $alAvailableSessions){
-                $lbSessions.AddChild("$($session.sessionName)                  $($session.sessionID)                  $($session.sessionState)")
-            }
-            $tbComputerName.Text = $computerName.Name            
-            $tbFreeDiskSpace.Text = "$((Get-WMIObject -ComputerName $computerName.Name -ClassName Win32_LogicalDisk | Where-Object {$_.DeviceID -eq 'C:'} | Select-Object  @{Name="FreeSpacePercent"; Expression={[Math]::Round(($_.FreeSpace / $_.Size) * 100)}}).FreeSpacePercent)%"
-            #$tbMemoryUsage.Text = "$((Get-Counter -ComputerName $computerName.Name -Counter '\Memory\Available MBytes').CounterSamples.CookedValue) MB"
-            $tbLastBootTime.Text = [Management.ManagementDateTimeConverter]::ToDateTime((Get-WmiObject -ComputerName $computerName.Name -Class Win32_OperatingSystem).LastBootUpTime)
-        }else{
-            [System.Windows.Forms.MessageBox]::Show('No computer selected.')
         }
-        
-    }catch{
-        [System.Windows.Forms.MessageBox]::Show($_)
+
+        foreach($session in $alAvailableSessions){
+            $lbSessions.AddChild("$($session.sessionName)                  $($session.sessionID)                  $($session.sessionState)")
+        }
+        $tbComputerName.Text = $computerName.Name            
+        $tbFreeDiskSpace.Text = "$((Get-WMIObject -ComputerName $computerName.Name -ClassName Win32_LogicalDisk | Where-Object {$_.DeviceID -eq 'C:'} | Select-Object  @{Name="FreeSpacePercent"; Expression={[Math]::Round(($_.FreeSpace / $_.Size) * 100)}}).FreeSpacePercent)%"
+        #$tbMemoryUsage.Text = "$((Get-Counter -ComputerName $computerName.Name -Counter '\Memory\Available MBytes').CounterSamples.CookedValue) MB"
+        $tbLastBootTime.Text = [Management.ManagementDateTimeConverter]::ToDateTime((Get-WmiObject -ComputerName $computerName.Name -Class Win32_OperatingSystem).LastBootUpTime)
+    }else{
+        [System.Windows.Forms.MessageBox]::Show('No computer selected.')
     }
+        
 }
 
 #Shadow selected session based on session information collected in Search-Computer function
@@ -311,8 +311,11 @@ function Start-Shadow{
 
 function Send-Email{
     $EmailWindow = .\CreateWindow.ps1 -Path '..\Windows\EmailWindow.xaml'
-
-    $user = Get-AdUser -Identity $tbSAMAccountName.Text -Properties EmailAddress
+    if($tbSAMAccountName.Text){
+        $user = Get-AdUser -Identity $tbSAMAccountName.Text -Properties EmailAddress
+    }else{
+        throw "No user selected"
+    }
     $outlook = New-Object -ComObject Outlook.Application
     $mail = $outlook.createItem(0)
     $mail.To = $user.EmailAddress
@@ -430,29 +433,35 @@ function Create-UserInfoWindow{
 
         $UserInfoWindow.ShowDialog() | Out-Null
     }else{
-        Write-Host "No user Selected"
+        throw "No user Selected"
     }
 }
 
+
 $bSearch = $MainWindow.FindName("bSearch")
-$bSearch.Add_Click({Search-User})
+$bSearch.Add_Click({try{Search-User}catch{
+    [System.Windows.Forms.MessageBox]::Show($_)}
+    $tbEmployeeID.Text = ""
+    $tbSAMAccountName.Text = ""
+})
 
 $bUnlock = $MainWindow.FindName("bUnlock")
-$bUnlock.Add_Click({Unlock-User})
+$bUnlock.Add_Click({try{Unlock-User}catch{[System.Windows.Forms.MessageBox]::Show($_)}})
 
 $bChangePassword = $MainWindow.FindName("bChangePassword")
-$bChangePassword.Add_Click({Create-PasswordWindow})
+$bChangePassword.Add_Click({try{Create-PasswordWindow}catch{[System.Windows.Forms.MessageBox]::Show($_)}})
 
 $bSearchComputer = $MainWindow.FindName("bSearchComputer")
-$bSearchComputer.Add_Click({Search-Computer})
+$bSearchComputer.Add_Click({try{Search-Computer}catch{[System.Windows.Forms.MessageBox]::Show($_)}})
 
 $bShadow = $MainWindow.FindName("bShadow")
-$bShadow.Add_Click({Start-Shadow})
+$bShadow.Add_Click({try{Start-Shadow}catch{[System.Windows.Forms.MessageBox]::Show($_)}})
 
 $bSendEmail = $MainWindow.FindName('bSendEmail')
-$bSendEmail.Add_Click({Send-Email})
+$bSendEmail.Add_Click({try{Send-Email}catch{[System.Windows.Forms.MessageBox]::Show($_)}})
 
 $bMoreUserInfo = $MainWindow.FindName('bMoreUserInfo')
-$bMoreUserInfo.Add_Click({Create-UserinfoWindow})
+$bMoreUserInfo.Add_Click({try{Create-UserInfoWindow}catch{[System.Windows.Forms.MessageBox]::Show($_)}})
+
 
 $MainWindow.ShowDialog() | Out-Null
