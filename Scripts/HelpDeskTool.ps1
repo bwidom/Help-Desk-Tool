@@ -35,6 +35,7 @@ $tbSearchUser.Focus() | Out-Null
 
 $dataTable = New-Object System.Data.DataTable
 
+
 [void]$dataTable.Columns.Add("DC Name", [string])
 [void]$dataTable.Columns.Add("LastBadPassword", [string])
 [void]$dataTable.Columns.Add("PasswordLastSet", [string])
@@ -320,6 +321,7 @@ function Send-Email{
     $mail = $outlook.createItem(0)
     $mail.To = $user.EmailAddress
     $mail.Display()
+    $signature = $mail.HTMLBody
 
     $cbTemplate = $EmailWindow.FindName("cbTemplate")
     $bSelectTemplate = $EmailWindow.FindName('bSelectTemplate')
@@ -343,7 +345,7 @@ function Send-Email{
 
         $mail.Subject = "$subject"
         $template | ForEach-Object {$bodyBuffer += $_}
-        $Mail.HTMLBody = "$(Get-EmailHeader) <br><br> $bodyBuffer $($Mail.HTMLBody)"
+        $Mail.HTMLBody = "$(Get-EmailHeader) <br><br> $bodyBuffer <br> $signature"
     }
 
     Function Get-EmailHeader{
@@ -439,10 +441,12 @@ function Create-UserInfoWindow{
 
 
 $bSearch = $MainWindow.FindName("bSearch")
-$bSearch.Add_Click({try{Search-User}catch{
-    [System.Windows.Forms.MessageBox]::Show($_)}
-    $tbEmployeeID.Text = ""
-    $tbSAMAccountName.Text = ""
+$bSearch.Add_Click({try{Search-User}
+    catch{
+        [System.Windows.Forms.MessageBox]::Show($_)
+        $tbEmployeeID.Text = ""
+        $tbSAMAccountName.Text = ""
+    }
 })
 
 $bUnlock = $MainWindow.FindName("bUnlock")
@@ -465,3 +469,4 @@ $bMoreUserInfo.Add_Click({try{Create-UserInfoWindow}catch{[System.Windows.Forms.
 
 
 $MainWindow.ShowDialog() | Out-Null
+$MainWindow.BringIntoView()
