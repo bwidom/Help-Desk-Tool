@@ -138,8 +138,7 @@ function Unlock-User{
     if($tbSAMAccountName.Text){
         foreach($dc in $dcs){
                 Unlock-ADAccount -Identity $tbSAMAccountName.Text -Server $dc
-        }
-        Search-User
+        }        
     }else{
         throw "No User Selected"
     }
@@ -323,7 +322,7 @@ function Send-Email{
     $mail.Display()
     $signature = $mail.HTMLBody
 
-    $cbTemplate = $EmailWindow.FindName("cbTemplate")
+    $cbTemplate = $EmailWindow.FindName("cbTemplate")    
     $bSelectTemplate = $EmailWindow.FindName('bSelectTemplate')
     $bAddTemplate = $EmailWindow.FindName('bAddTemplate')
     $tbTemplateName = $EmailWindow.FindName('tbTemplateName')
@@ -337,10 +336,11 @@ function Send-Email{
     $bDeleteTemplate.Add_Click({Delete-Template})
 
     function Select-Template{
+        $csv = Import-Csv '..\EmailTemplates.csv'
         $mail.HTMLBody = ''
         $templateName = $cbTemplate.SelectedItem
-        $template = $csv | Where-Object{$_.Name -eq $templateName} | Select-Object -ExpandProperty Template
-        $subject = $csv | Where-Object{$_.Name -eq $templateName} | Select-Object -ExpandProperty Subject
+        $template = $csv | Where-Object{$_.Name -eq $templateName} | Select-Object -ExpandProperty Template        
+        $subject = $csv | Where-Object{$_.Name -eq $templateName} | Select-Object -ExpandProperty Subject        
         $bodyBuffer = ''
 
         $mail.Subject = "$subject"
@@ -362,8 +362,12 @@ function Send-Email{
 
         for($i = 2; $i -lt $newTemplate.Length; $i++){
             $newTemplate[$i] | Out-File -FilePath '..\EmailTemplates.csv' -Append
-        }
-        $EmailWindow.Close()
+        }       
+
+        $cbTemplate.Items.Clear()        
+        
+        $csv = Import-Csv '..\EmailTemplates.csv'
+        $csv | ForEach-Object{$cbTemplate.AddChild($_.Name)}        
     }  
 
     function Delete-Template{
@@ -374,10 +378,10 @@ function Send-Email{
         $lDeleteEmailPrompt.Content = "Are you sure you want to delete email template $($cbTemplate.SelectedItem)?"
 
         $bConfirmDelete.Add_Click(
-        {
+            {
                 $templateName = $cbTemplate.SelectedItem
                 $csv = Import-Csv -Path '..\EmailTemplates.csv'
-                $templates = [System.Collections.ArrayList]::new($csv)
+                $templates = [System.Collections.ArrayList]::new(@($csv))
         
                 for($i = 0; $i -lt $templates.Count; $i++){
                     if($templates[$i].Name -eq $templateName){
@@ -387,10 +391,18 @@ function Send-Email{
 
                 $templates.RemoveAt($index)
 
-                $templates | ConvertTo-Csv | Out-File '..\EmailTemplates.csv'
-                $confirmEmailDeleteWindow.close()                
-                $EmailWindow.close()
-        }
+                if($templates.Count -eq 0){
+                    '"Name","Subject","Template"'| Out-File '..\EmailTemplates.csv'
+                }else{
+                    $templates | ConvertTo-Csv | Out-File '..\EmailTemplates.csv'
+                }                
+                               
+                $cbTemplate.Items.Clear()        
+        
+                $csv = Import-Csv '..\EmailTemplates.csv'
+                $csv | ForEach-Object{$cbTemplate.AddChild($_.Name)} 
+                $confirmEmailDeleteWindow.close()
+            }
         )
 
         $bCancelDelete.Add_Click({$confirmEmailDeleteWindow.close()})
