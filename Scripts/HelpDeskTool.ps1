@@ -44,13 +44,12 @@ $dataTable = New-Object System.Data.DataTable
 [void]$dataTable.Columns.Add("BadLogonCount", [int])
 
 #Properties for Get-ADUser command
-$properties = @("LastBadPasswordAttempt", "PasswordLastSet", "msDS-UserPasswordExpiryTimeComputed", "BadLogonCount", "LockedOut", "EmployeeID", "SAMAccountName")
+$properties = @("LastBadPasswordAttempt", "PasswordLastSet", "msDS-UserPasswordExpiryTimeComputed", "BadLogonCount", "LockedOut", "EmployeeID", "SAMAccountName", "LockoutTime")
 
 $dgAccountInfo.ItemsSource = $dataTable.DefaultView
 
 $dcs = @(Get-ADDomainController -Filter * | Sort-Object -Property Name)
 $rows = [Object[]]::new($dcs.Count)
-$domainDistinguishedName = (Get-ADDomain).DistinguishedName
 
 
 for($i=0; $i -lt $dcs.Count; $i++){
@@ -102,7 +101,7 @@ function Search-User{
     }
     
     #Get count of users who match criteria. If more than one, diplay matching users.
-    $countUser = @(Get-ADUser -Filter $filter -SearchBase $domainDistinguishedName)
+    $countUser = @(Get-ADUser -Filter $filter)
 
     if($countUser.Count -eq 1){
         for($i = 0; $i -lt $dcs.Count; $i++){             
@@ -111,7 +110,7 @@ function Search-User{
                     $(if($userInfoOnServer.LastBadPasswordAttempt){$userInfoOnServer.LastBadPasswordAttempt}else{'None'}) `
                     $(if($userInfoOnServer.PasswordLastSet){$userInfoOnServer.PasswordLastSet}else{"Change Password"}) `
                     $(if($userInfoOnServer.PasswordLastSet){[datetime]::FromFileTime($userInfoOnServer.'msDS-UserPasswordExpiryTimeComputed')}else{"N/A"}) `
-                    $(if((Get-ADUser -Filter $filter -Properties * | Select-Object -ExpandProperty lockoutTime) -gt 0){"Locked"}else{"Unlocked"}) `
+                    $(if($userInfoOnServer.LockoutTime -gt 0){"Locked"}else{"Unlocked"}) `
                     $(if($userInfoOnServer.BadLogonCount){$userInfoOnServer.BadLogonCount}else{0}) `
                     $($dcs[$i].Name)
         }
@@ -228,7 +227,7 @@ function Create-SelectUserWindow{
                     $(if($userInfoOnServer.LastBadPasswordAttempt){$userInfoOnServer.LastBadPasswordAttempt}else{'None'}) `
                     $(if($userInfoOnServer.PasswordLastSet){$userInfoOnServer.PasswordLastSet}else{"Change Password"}) `
                     $(if($userInfoOnServer.PasswordLastSet){[datetime]::FromFileTime($userInfoOnServer.'msDS-UserPasswordExpiryTimeComputed')}else{"N/A"}) `
-                    $(if((Get-ADUser -Filter $filter -Properties * | Select-Object -ExpandProperty lockoutTime) -gt 0){"Locked"}else{"Unlocked"}) `
+                    $(if($userInfoOnServer.LockoutTime -gt 0){"Locked"}else{"Unlocked"}) `
                     $(if($userInfoOnServer.BadLogonCount){$userInfoOnServer.BadLogonCount}else{0}) `
                     $($dcs[$i].Name)
         }
@@ -264,6 +263,9 @@ function Search-Computer{
     
     if($tbComputerSearch.Text){
         $computerName = @(Get-ADComputer -Identity $tbComputerSearch.Text)
+        if(!(Test-Connection $tbComputerSearch.Text -Quiet -Count 1)){
+            Throw "Unable to connect to $($tbComputerSearch.Text)" 
+        }
 
         $alAvailableSessions = [System.Collections.ArrayList]::new()
             
@@ -288,9 +290,17 @@ function Search-Computer{
         foreach($session in $alAvailableSessions){
             $lbSessions.AddChild("$($session.sessionName)                  $($session.sessionID)                  $($session.sessionState)")
         }
-        $tbComputerName.Text = $computerName.Name            
+        $tbComputerName.Text = $computerName.Name  
+        $tbIPAddress.Text = Get-WmiObject -ComputerName client1 win32_networkadapterconfiguration | Where-Object {$_.Index -eq 1} | Select-Object -ExpandProperty IPAddress          
         $tbFreeDiskSpace.Text = "$((Get-WMIObject -ComputerName $computerName.Name -ClassName Win32_LogicalDisk | Where-Object {$_.DeviceID -eq 'C:'} | Select-Object  @{Name="FreeSpacePercent"; Expression={[Math]::Round(($_.FreeSpace / $_.Size) * 100)}}).FreeSpacePercent)%"
-        #$tbMemoryUsage.Text = "$((Get-Counter -ComputerName $computerName.Name -Counter '\Memory\Available MBytes').CounterSamples.CookedValue) MB"
+        try{          
+            $AvailableMBytes = ((Get-Counter -ComputerName $computerName.Name -Counter '\Memory\Available MBytes').CounterSamples.CookedValue)
+            $TotalPhysicalMemory = Get-WmiObject -ComputerName $computerName.Name -Class win32_ComputerSystem | Select-Object -ExpandProperty TotalPhysicalMemory 
+            $Percent = [Math]::Round((1 - ($AvailableMBytes * 1MB)/$TotalPhysicalMemory) * 100)
+            $tbMemoryUsage.Text = "$Percent%"
+        }catch{
+            $tbMemoryUsage.Text = 'Unavailable'
+        }        
         $tbLastBootTime.Text = [Management.ManagementDateTimeConverter]::ToDateTime((Get-WmiObject -ComputerName $computerName.Name -Class Win32_OperatingSystem).LastBootUpTime)
     }else{
         [System.Windows.Forms.MessageBox]::Show('No computer selected.')
@@ -321,6 +331,9 @@ function Send-Email{
     $mail.To = $user.EmailAddress
     $mail.Display()
     $signature = $mail.HTMLBody
+
+    $EmailWindow.Owner = $MainWindow
+    $EmailWindow.WindowStartupLocation = 'CenterOwner'
 
     $cbTemplate = $EmailWindow.FindName("cbTemplate")    
     $bSelectTemplate = $EmailWindow.FindName('bSelectTemplate')
@@ -354,20 +367,25 @@ function Send-Email{
     }
 
     function Add-Template{
-        $newTemplate = [pscustomobject]@{
-            Name = $tbTemplateName.Text
-            Subject = $mail.Subject
-            Template = $mail.HTMLBody
-        }|ConvertTo-Csv
+        $fileSize = Get-Item '..\EmailTemplates.csv' | Select-Object -ExpandProperty Length
+        if($fileSize -lt 5MB){
+            $newTemplate = [pscustomobject]@{
+                Name = $tbTemplateName.Text
+                Subject = $mail.Subject
+                Template = $mail.HTMLBody
+            }|ConvertTo-Csv
 
-        for($i = 2; $i -lt $newTemplate.Length; $i++){
-            $newTemplate[$i] | Out-File -FilePath '..\EmailTemplates.csv' -Append
-        }       
+            for($i = 2; $i -lt $newTemplate.Length; $i++){
+                $newTemplate[$i] | Out-File -FilePath '..\EmailTemplates.csv' -Append
+            }       
 
-        $cbTemplate.Items.Clear()        
+            $cbTemplate.Items.Clear()        
         
-        $csv = Import-Csv '..\EmailTemplates.csv'
-        $csv | ForEach-Object{$cbTemplate.AddChild($_.Name)}        
+            $csv = Import-Csv '..\EmailTemplates.csv'
+            $csv | ForEach-Object{$cbTemplate.AddChild($_.Name)}  
+        }else{
+            [System.Windows.Forms.MessageBox]::Show('Email Templates file is too large. Delete templates to make more room.')
+        } 
     }  
 
     function Delete-Template{
@@ -442,8 +460,8 @@ function Create-UserInfoWindow{
         $tbOtherLoginWorkstation.Text = $User.otherLoginWorkstations
         $tbCanonicalName.Text = $User.CanonicalName
         $tbProfilePath.Text = $User.HomeDirectory
-        $tbExpiresOn.Text = $User.AccountExpirationDate        
-        (Get-ADUser -Filter {SAMAccountName -eq $tbSAMAccountName.Text} -Properties MemberOf).MemberOf | ForEach-Object {$lbMemberOf.AddChild(($_ -split ',')[0].Substring(3))}
+        $tbExpiresOn.Text = $User.AccountExpirationDate                
+        $user.MemberOf | Sort-Object -Property {($_ -split ',')[0].Substring(3)} | ForEach-Object {$lbMemberOf.AddChild(($_ -split ',')[0].Substring(3))}
 
         $UserInfoWindow.ShowDialog() | Out-Null
     }else{

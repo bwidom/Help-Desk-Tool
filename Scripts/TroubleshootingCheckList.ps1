@@ -70,7 +70,7 @@ if($freeSpaceOnCDrive -lt 15){
             "$freeSpaceonCDrive", 
             'The C: drive is low on free space. Consider getting more storage.'           
         )
-    )| Out-Null
+    ) | Out-Null
 }
 
 
@@ -274,13 +274,6 @@ if($netInterfaceOutputQueue -gt 2){
         ) 
     ) | Out-Null    
 }
-
-
-
-ForEach($message in $ErrorSummary){
-    Write-Host $message
-}
-
 
 $ErrorSummary | Out-GridView
 
