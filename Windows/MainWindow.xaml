@@ -62,19 +62,17 @@
                     <Label Content="Sessions" HorizontalAlignment="Left" Height="26" Margin="10,40,0,0" VerticalAlignment="Top" Width="163"/>
                     <Button x:Name="bSearchComputer" Content="Search" HorizontalAlignment="Left" Height="22" Margin="310,14,0,0" VerticalAlignment="Top" Width="82" Cursor="Hand"/>
                     <Button x:Name="bShadow" Content="Shadow" HorizontalAlignment="Left" Height="24" Margin="14,179,0,0" VerticalAlignment="Top" Width="196" Cursor="Hand"/>
-                    <Border BorderBrush="#FF898585" BorderThickness="1" HorizontalAlignment="Left" Height="153" Margin="492,17,0,0" VerticalAlignment="Top" Width="373">
+                    <Border BorderBrush="#FF898585" BorderThickness="1" HorizontalAlignment="Left" Height="125" Margin="492,17,0,0" VerticalAlignment="Top" Width="373">
                     </Border>
                     <Label Content="Computer Info" Background="#FFE5E5E5" HorizontalAlignment="Left" Margin="518,9,0,0" VerticalAlignment="Top" Width="79" Padding="0,0,0,0"/>
                     <Label Content="Name:" HorizontalAlignment="Left" Height="19" Margin="518,30,0,0" VerticalAlignment="Top" Width="41" Padding="0,0,0,0"/>
-                    <TextBox x:Name="tbComputerName" IsReadOnly="True" Background="{x:Null}" BorderBrush="{x:Null}" Foreground="Black" BorderThickness="0" HorizontalAlignment="Left" Height="19" Margin="650,30,0,0" VerticalAlignment="Top" Width="178" Padding="0,0,0,0"/>
-                    <Label Content="IP Address:" HorizontalAlignment="Left" Height="19" Margin="518,54,0,0" VerticalAlignment="Top" Width="60" Padding="0,0,0,0"/>
-                    <TextBox x:Name="tbIPAddress" IsReadOnly="True" Background="{x:Null}" BorderBrush="{x:Null}" Foreground="Black" BorderThickness="0" HorizontalAlignment="Left" Height="19" Margin="650,54,0,0" VerticalAlignment="Top" Width="178" Padding="0,0,0,0"/>
-                    <Label Content="Free Disk Space:" HorizontalAlignment="Left" Height="19" Margin="518,78,0,0" VerticalAlignment="Top" Width="93" Padding="0,0,0,0"/>
-                    <TextBox x:Name="tbFreeDiskSpace" IsReadOnly="True" Background="{x:Null}" BorderBrush="{x:Null}" Foreground="Black" BorderThickness="0" HorizontalAlignment="Left" Height="19" Margin="650,78,0,0" VerticalAlignment="Top" Width="178" Padding="0,0,0,0"/>
-                    <Label Content="Memory Usage:" HorizontalAlignment="Left" Height="19" Margin="518,102,0,0" VerticalAlignment="Top" Width="93" Padding="0,0,0,0"/>
-                    <TextBox x:Name="tbMemoryUsage" IsReadOnly="True" Background="{x:Null}" BorderBrush="{x:Null}" Foreground="Black" BorderThickness="0" HorizontalAlignment="Left" Height="19" Margin="650,102,0,0" VerticalAlignment="Top" Width="178" Padding="0,0,0,0"/>
-                    <Label Content="Last Boot Time:" HorizontalAlignment="Left" Height="19" Margin="518,126,0,0" VerticalAlignment="Top" Width="93" Padding="0,0,0,0"/>
-                    <TextBox x:Name="tbLastBootTime" IsReadOnly="True" Background="{x:Null}" BorderBrush="{x:Null}" Foreground="Black" BorderThickness="0" HorizontalAlignment="Left" Height="19" Margin="650,126,0,0" VerticalAlignment="Top" Width="178" Padding="0,0,0,0"/>
+                    <TextBox x:Name="tbComputerName" IsReadOnly="True" Background="{x:Null}" BorderBrush="{x:Null}" Foreground="Black" BorderThickness="0" HorizontalAlignment="Left" Height="19" Margin="650,30,0,0" VerticalAlignment="Top" Width="178" Padding="0,0,0,0"/>                                       
+                    <Label Content="Free Disk Space:" HorizontalAlignment="Left" Height="19" Margin="518,54,0,0" VerticalAlignment="Top" Width="93" Padding="0,0,0,0"/>
+                    <TextBox x:Name="tbFreeDiskSpace" IsReadOnly="True" Background="{x:Null}" BorderBrush="{x:Null}" Foreground="Black" BorderThickness="0" HorizontalAlignment="Left" Height="19" Margin="650,54,0,0" VerticalAlignment="Top" Width="178" Padding="0,0,0,0"/>
+                    <Label Content="Memory Usage:" HorizontalAlignment="Left" Height="19" Margin="518,78,0,0" VerticalAlignment="Top" Width="93" Padding="0,0,0,0"/>
+                    <TextBox x:Name="tbMemoryUsage" IsReadOnly="True" Background="{x:Null}" BorderBrush="{x:Null}" Foreground="Black" BorderThickness="0" HorizontalAlignment="Left" Height="19" Margin="650,78,0,0" VerticalAlignment="Top" Width="178" Padding="0,0,0,0"/>
+                    <Label Content="Last Boot Time:" HorizontalAlignment="Left" Height="19" Margin="518,102,0,0" VerticalAlignment="Top" Width="93" Padding="0,0,0,0"/>
+                    <TextBox x:Name="tbLastBootTime" IsReadOnly="True" Background="{x:Null}" BorderBrush="{x:Null}" Foreground="Black" BorderThickness="0" HorizontalAlignment="Left" Height="19" Margin="650,102,0,0" VerticalAlignment="Top" Width="178" Padding="0,0,0,0"/>
                 </Grid>
             </TabItem>
         </TabControl>

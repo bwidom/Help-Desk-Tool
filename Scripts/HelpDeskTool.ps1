@@ -10,6 +10,7 @@
 #>
 
 $MainWindow = .\CreateWindow.ps1 -Path '../Windows/MainWindow.xaml'
+$MainWindow.Title = 'Service Desk Tool'
 
 $dgAccountInfo = $MainWindow.FindName("dgAccountInfo")
 $cbSearchCriteria = $MainWindow.FindName("cbSearchCriteria")
@@ -18,15 +19,9 @@ $tbEmployeeID = $MainWindow.FindName("tbEmployeeID")
 $tbSAMAccountName = $MainWindow.FindName("tbSAMAccountName")
 $tbComputerSearch = $MainWindow.FindName("tbComputerSearch")
 $tbSessions = $MainWindow.FindName("tbSessions")
-$tbComputerName = $MainWindow.FindName('tbComputerName')
-$tbIPAddress = $MainWindow.FindName('tbIPAddress')
-$tbFreeDiskSpace = $MainWindow.FindName('tbFreeDiskSpace')
-$tbMemoryUsage = $MainWindow.FindName('tbMemoryUsage')
-$tbLastBootTime = $MainWindow.FindName('tbLastBootTime')
 $iDisabledIcon = $MainWindow.FindName('iDisabledIcon')
 $lbSessions = $MainWindow.FindName("lbSessions")
 $tbComputerName = $MainWindow.FindName('tbComputerName')
-$tbIPAddress = $MainWindow.FindName('tbIPAddress')
 $tbFreeDiskSpace = $MainWindow.FindName('tbFreeDiskSpace')
 $tbMemoryUsage = $MainWindow.FindName('tbMemoryUsage')
 $tbLastBootTime = $MainWindow.FindName('tbLastBootTime')
@@ -34,7 +29,6 @@ $tbLastBootTime = $MainWindow.FindName('tbLastBootTime')
 $tbSearchUser.Focus() | Out-Null
 
 $dataTable = New-Object System.Data.DataTable
-
 
 [void]$dataTable.Columns.Add("DC Name", [string])
 [void]$dataTable.Columns.Add("LastBadPassword", [string])
@@ -256,7 +250,7 @@ function Clear-Window{
 function Search-Computer{    
     $lbSessions.Items.Clear()
     $tbComputerName.Text = ''
-    $tbIPAddress.Text =  ''
+    #$tbIPAddress.Text =  ''
     $tbFreeDiskSpace.Text = ''
     $tbMemoryUsage.Text = ''
     $tbLastBootTime.Text = ''
@@ -290,8 +284,7 @@ function Search-Computer{
         foreach($session in $alAvailableSessions){
             $lbSessions.AddChild("$($session.sessionName)                  $($session.sessionID)                  $($session.sessionState)")
         }
-        $tbComputerName.Text = $computerName.Name  
-        $tbIPAddress.Text = Get-WmiObject -ComputerName client1 win32_networkadapterconfiguration | Where-Object {$_.Index -eq 1} | Select-Object -ExpandProperty IPAddress          
+        $tbComputerName.Text = $computerName.Name          
         $tbFreeDiskSpace.Text = "$((Get-WMIObject -ComputerName $computerName.Name -ClassName Win32_LogicalDisk | Where-Object {$_.DeviceID -eq 'C:'} | Select-Object  @{Name="FreeSpacePercent"; Expression={[Math]::Round(($_.FreeSpace / $_.Size) * 100)}}).FreeSpacePercent)%"
         try{          
             $AvailableMBytes = ((Get-Counter -ComputerName $computerName.Name -Counter '\Memory\Available MBytes').CounterSamples.CookedValue)
@@ -457,10 +450,10 @@ function Create-UserInfoWindow{
         $tbEmailAddress.Text = $User.EmailAddress
         $tbTelephone.Text = $User.telephoneNumber
         $tbMobilePhone.Text = $User.MobilePhone
-        $tbOtherLoginWorkstation.Text = $User.otherLoginWorkstations
+        $tbOtherLoginWorkstation.Text = if($User.otherLoginWorkstations){$User.otherLoginWorkstations}else{"Not Set"}
         $tbCanonicalName.Text = $User.CanonicalName
         $tbProfilePath.Text = $User.HomeDirectory
-        $tbExpiresOn.Text = $User.AccountExpirationDate                
+        $tbExpiresOn.Text = if($User.AccountExpirationDate){$User.AccountExpirationDate}else{"Never"}               
         $user.MemberOf | Sort-Object -Property {($_ -split ',')[0].Substring(3)} | ForEach-Object {$lbMemberOf.AddChild(($_ -split ',')[0].Substring(3))}
 
         $UserInfoWindow.ShowDialog() | Out-Null
