@@ -20,6 +20,8 @@ $tbSAMAccountName = $MainWindow.FindName("tbSAMAccountName")
 $tbComputerSearch = $MainWindow.FindName("tbComputerSearch")
 $tbSessions = $MainWindow.FindName("tbSessions")
 $iDisabledIcon = $MainWindow.FindName('iDisabledIcon')
+$iExpiredPassword = $MainWindow.FindName('iExpiredPassword')
+$iExpiredAccount = $MainWindow.FindName('iExpiredAccount')
 $lbSessions = $MainWindow.FindName("lbSessions")
 $tbComputerName = $MainWindow.FindName('tbComputerName')
 $tbFreeDiskSpace = $MainWindow.FindName('tbFreeDiskSpace')
@@ -38,7 +40,7 @@ $dataTable = New-Object System.Data.DataTable
 [void]$dataTable.Columns.Add("BadLogonCount", [int])
 
 #Properties for Get-ADUser command
-$properties = @("LastBadPasswordAttempt", "PasswordLastSet", "msDS-UserPasswordExpiryTimeComputed", "BadLogonCount", "LockedOut", "EmployeeID", "SAMAccountName", "LockoutTime")
+$properties = @("LastBadPasswordAttempt", "PasswordLastSet", "msDS-UserPasswordExpiryTimeComputed", "BadLogonCount", "LockedOut", "EmployeeID", "SAMAccountName", "LockoutTime", "PasswordExpired", "AccountExpirationDate")
 
 $dgAccountInfo.ItemsSource = $dataTable.DefaultView
 
@@ -82,6 +84,8 @@ function Search-User{
     $tbEmployeeID.Text = "Collecting data..."
     $tbSAMAccountName.Text = ""
     $iDisabledIcon.Visibility="Hidden"
+    $iExpiredPassword.Visibility='Hidden'
+    $iExpiredAccount.Visibility='Hidden'
     #Force the text box controls to update
     [System.Windows.Forms.Application]::DoEvents()
     switch($cbSearchCriteria.SelectedIndex){
@@ -94,8 +98,8 @@ function Search-User{
         }
     }
     
-    #Get count of users who match criteria. If more than one, diplay matching users.
-    $countUser = @(Get-ADUser -Filter $filter)
+    #Get count of users who match criteria. If more than one, diplay all matching users in select user window.
+    $countUser = @(Get-ADUser -Filter $filter -Properties PasswordExpired, AccountExpirationDate)
 
     if($countUser.Count -eq 1){
         for($i = 0; $i -lt $dcs.Count; $i++){             
@@ -109,6 +113,8 @@ function Search-User{
                     $($dcs[$i].Name)
         }
         if($countUser[0].Enabled){$iDisabledIcon.Visibility='Hidden'}else{$iDisabledIcon.Visibility='Visible'}
+        if($countUser[0].PasswordExpired){$iExpiredPassword.Visibility='Visible'}else{$iExpiredPassword.Visibility='Hidden'}
+        if($countUser[0].AccountExpirationDate){if((Get-Date -Date ($countUser[0].AccountExpirationDate)) -lt (Get-Date)){$iExpiredAccount.Visibility='Visible'}else{$iExpiredAccount.Visibility='Hidden'}}else{$iExpiredAccount.Visibility='Hidden'}
         $tbEmployeeID.Text = $userInfoOnServer.EmployeeID
         $tbSAMAccountName.Text = $userInfoOnServer.SAMAccountName
     }elseif($countUser.Count -eq 0){
@@ -121,7 +127,9 @@ function Search-User{
     }elseif($countUser.Count -gt 1){
         $tbEmployeeID.Text = ""
         $tbSAMAccountName.Text = ""
-        $iDisabledIcon.Visibility="Hidden"
+        $iDisabledIcon.Visibility='Hidden'
+        $iExpiredPassword.Visibility='Hidden'
+        $iExpiredAccount.Visibility='Hidden'
         Create-SelectUserWindow
     }
 }
@@ -215,6 +223,8 @@ function Create-SelectUserWindow{
         $tbSAMAccountName.Text = ""
         $user = $lbUsers.SelectedItem
         $iDisabledIcon.Visibility="Hidden"
+        $iExpiredPassword.Visibility='Hidden'
+        $iExpiredAccount.Visibility='Hidden'
         for($i = 0; $i -lt $dcs.Count; $i++){ 
                 $userInfoOnServer = @(Get-ADUser $user -Server $dcs[$i] -Properties $properties)
                 Set-Rows $i `
@@ -226,6 +236,8 @@ function Create-SelectUserWindow{
                     $($dcs[$i].Name)
         }
         if($userInfoOnServer.Enabled){$iDisabledIcon.Visibility='Hidden'}else{$iDisabledIcon.Visibility='Visible'}
+        if($userInfoOnServer.PasswordExpired){$iExpiredPassword.Visibility='Visible'}else{$iExpiredPassword.Visibility='Hidden'}
+        if($userInfoOnServer.AccountExpirationDate){if((Get-Date -Date ($userInfoOnServer.AccountExpirationDate)) -lt (Get-Date)){$iExpiredAccount.Visibility='Visible'}else{$iExpiredAccount.Visibility='Hidden'}}else{$iExpiredAccount.Visibility='Hidden'}
         $tbEmployeeID.Text = $userInfoOnServer.EmployeeID
         $tbSAMAccountName.Text = $userInfoOnServer.SAMAccountName
         $SelectUserWindow.Close()
@@ -362,24 +374,45 @@ function Send-Email{
     function Add-Template{
         $fileSize = Get-Item '..\EmailTemplates.csv' | Select-Object -ExpandProperty Length
         if($fileSize -lt 5MB){
-            $newTemplate = [pscustomobject]@{
-                Name = $tbTemplateName.Text
-                Subject = $mail.Subject
-                Template = $mail.HTMLBody
-            }|ConvertTo-Csv
+            if(-not (Check-IfTemplateExists -templateName $tbTemplateName.Text)){
+            
+                $newTemplate = [pscustomobject]@{
+                    Name = $tbTemplateName.Text
+                    Subject = $mail.Subject
+                    Template = $mail.HTMLBody
+                }|ConvertTo-Csv
 
-            for($i = 2; $i -lt $newTemplate.Length; $i++){
-                $newTemplate[$i] | Out-File -FilePath '..\EmailTemplates.csv' -Append
-            }       
+                for($i = 2; $i -lt $newTemplate.Length; $i++){
+                    $newTemplate[$i] | Out-File -FilePath '..\EmailTemplates.csv' -Append
+                }       
 
-            $cbTemplate.Items.Clear()        
+                $cbTemplate.Items.Clear()        
         
-            $csv = Import-Csv '..\EmailTemplates.csv'
-            $csv | ForEach-Object{$cbTemplate.AddChild($_.Name)}  
+                $csv = Import-Csv '..\EmailTemplates.csv'
+                $csv | ForEach-Object{$cbTemplate.AddChild($_.Name)}  
+            }else{
+                [System.Windows.Forms.MessageBox]::Show('An email template with this name already exists. Please choose another name.')
+            }
         }else{
             [System.Windows.Forms.MessageBox]::Show('Email Templates file is too large. Delete templates to make more room.')
         } 
     }  
+
+    function Check-IfTemplateExists{
+        param(
+            [string] $templateName
+        )
+
+        $csv = Import-Csv '..\EmailTemplates.csv'
+
+        $csv | ForEach-Object {
+            if($_.Name -eq $templateName){
+                return $true
+            }
+        }
+
+        return $false
+    }
 
     function Delete-Template{
         $confirmEmailDeleteWindow = .\CreateWindow.ps1 -Path '..\Windows\ConfirmEmailDeleteWindow.xaml'

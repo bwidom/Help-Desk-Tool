@@ -34,7 +34,7 @@ class TroubleshootingCheck{
     [string]$ComputerAmount
     [string]$Message    
 
-    TroubleshootingCheck([string]$message, [string]$correctAmount, [string]$computerAmount, [string]$counter){
+    TroubleshootingCheck([string]$counter, [string]$correctAmount, [string]$computerAmount, [string]$message){
         $this.counter = $counter
         $this.computerAmount = $computerAmount
         $this.correctAmount = $correctAmount
