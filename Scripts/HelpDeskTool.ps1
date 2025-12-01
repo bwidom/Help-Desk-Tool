@@ -28,6 +28,10 @@ $tbFreeDiskSpace = $MainWindow.FindName('tbFreeDiskSpace')
 $tbMemoryUsage = $MainWindow.FindName('tbMemoryUsage')
 $tbLastBootTime = $MainWindow.FindName('tbLastBootTime')
 
+$iDisabledIcon.Source = (Get-Item ..\Icons\DisabledIcon.png | Select-Object -ExpandProperty FullName)
+$iExpiredPassword.Source = (Get-Item ..\Icons\PasswordExpiredIcon.png | Select-Object -ExpandProperty FullName)
+$iExpiredAccount.Source = (Get-Item ..\Icons\AccountExpiredIcon.png | Select-Object -ExpandProperty FullName)
+
 $tbSearchUser.Focus() | Out-Null
 
 $dataTable = New-Object System.Data.DataTable
