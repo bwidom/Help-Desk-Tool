@@ -158,9 +158,17 @@ function Create-PasswordWindow{
 
         $attribute = Get-ADUser -Identity $tbSAMAccountName.Text -Properties $passwordSetting.userAttribute | Select-Object -ExpandProperty $passwordSetting.userAttribute
         if($passwordSetting.partOfAttribute -gt 0){
-            $password = $passwordSetting.passwordText + $attribute.Substring($passwordSetting.partOfAttribute - 1)
+            try{
+                $password = $passwordSetting.passwordText + $attribute.Substring($passwordSetting.partOfAttribute - 1)
+            }catch{
+                $password = $passwordSetting.passwordText + '00'
+            }
         }elseif($passwordSetting.partOfAttribute -lt 0){
-            $password = $passwordSetting.passwordText + $attribute.Substring($attribute.Length - ($passwordSetting.partOfAttribute*-1))
+            try{
+                $password = $passwordSetting.passwordText + $attribute.Substring($attribute.Length - ($passwordSetting.partOfAttribute*-1))
+            }catch{
+                $password = $passwordSetting.passwordText + '00'
+            }
         }else{
             $password = $passwordSetting.passwordText
         }
@@ -504,6 +512,18 @@ $bSearch.Add_Click({try{Search-User}
         $tbSAMAccountName.Text = ""
     }
 })
+$tbSearchUser.Add_KeyDown({    
+    if($_.Key -eq 'Return'){
+        try
+            {Search-User}
+        catch{
+            [System.Windows.Forms.MessageBox]::Show($_)
+            $tbEmployeeID.Text = ""
+            $tbSAMAccountName.Text = ""
+        }
+        
+    }
+})
 
 $bUnlock = $MainWindow.FindName("bUnlock")
 $bUnlock.Add_Click({try{Unlock-User}catch{[System.Windows.Forms.MessageBox]::Show($_)}})
@@ -513,6 +533,11 @@ $bChangePassword.Add_Click({try{Create-PasswordWindow}catch{[System.Windows.Form
 
 $bSearchComputer = $MainWindow.FindName("bSearchComputer")
 $bSearchComputer.Add_Click({try{Search-Computer}catch{[System.Windows.Forms.MessageBox]::Show($_)}})
+$tbComputerSearch.Add_KeyDown({
+        if($_.Key -eq 'Return'){
+            try{Search-Computer}catch{[System.Windows.Forms.MessageBox]::Show($_)}
+        }        
+})
 
 $bShadow = $MainWindow.FindName("bShadow")
 $bShadow.Add_Click({try{Start-Shadow}catch{[System.Windows.Forms.MessageBox]::Show($_)}})
