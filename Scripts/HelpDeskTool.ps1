@@ -16,6 +16,7 @@ $dgAccountInfo = $MainWindow.FindName("dgAccountInfo")
 $cbSearchCriteria = $MainWindow.FindName("cbSearchCriteria")
 $tbSearchUser = $MainWindow.FindName("tbSearchUser")
 $tbEmployeeID = $MainWindow.FindName("tbEmployeeID")
+$tbDescription = $MainWindow.FindName("tbDescription")
 $tbSAMAccountName = $MainWindow.FindName("tbSAMAccountName")
 $tbComputerSearch = $MainWindow.FindName("tbComputerSearch")
 $tbSessions = $MainWindow.FindName("tbSessions")
@@ -44,7 +45,7 @@ $dataTable = New-Object System.Data.DataTable
 [void]$dataTable.Columns.Add("BadLogonCount", [int])
 
 #Properties for Get-ADUser command
-$properties = @("LastBadPasswordAttempt", "PasswordLastSet", "msDS-UserPasswordExpiryTimeComputed", "BadLogonCount", "LockedOut", "EmployeeID", "SAMAccountName", "LockoutTime", "PasswordExpired", "AccountExpirationDate")
+$properties = @("LastBadPasswordAttempt", "PasswordLastSet", "msDS-UserPasswordExpiryTimeComputed", "BadLogonCount", "LockedOut", "EmployeeID", "SAMAccountName", "Description", "LockoutTime", "PasswordExpired", "AccountExpirationDate")
 
 $dgAccountInfo.ItemsSource = $dataTable.DefaultView
 
@@ -74,7 +75,7 @@ function Set-Rows{
         $BadLogonCount=[DBNull]::Value,
         [Parameter(Position=6)]
         [string]$DCName = [string]::Empty
-    )
+    )        
     $rows[$RowIndex]["LastBadPassword"] = $LastBadPassword
     $rows[$RowIndex]["PasswordLastSet"] = $PasswordLastSet
     $rows[$RowIndex]["PasswordExpirationDate"] = $PasswordExpirationDate
@@ -87,6 +88,7 @@ function Set-Rows{
 function Search-User{
     $tbEmployeeID.Text = "Collecting data..."
     $tbSAMAccountName.Text = ""
+    $tbDescription.Text = ""
     $iDisabledIcon.Visibility="Hidden"
     $iExpiredPassword.Visibility='Hidden'
     $iExpiredAccount.Visibility='Hidden'
@@ -107,11 +109,11 @@ function Search-User{
 
     if($countUser.Count -eq 1){
         for($i = 0; $i -lt $dcs.Count; $i++){             
-                $userInfoOnServer = @(Get-ADUser -Server $dcs[$i] -Filter $filter -Properties $properties -SearchBase $countUser[0].DistinguishedName)                
+                $userInfoOnServer = @(Get-ADUser -Server $dcs[$i] -Filter $filter -Properties $properties -SearchBase $countUser[0].DistinguishedName)                                
                 Set-Rows $i `
-                    $(if($userInfoOnServer.LastBadPasswordAttempt){$userInfoOnServer.LastBadPasswordAttempt}else{'None'}) `
-                    $(if($userInfoOnServer.PasswordLastSet){$userInfoOnServer.PasswordLastSet}else{"Change Password"}) `
-                    $(if($userInfoOnServer.PasswordLastSet){[datetime]::FromFileTime($userInfoOnServer.'msDS-UserPasswordExpiryTimeComputed')}else{"N/A"}) `
+                    $(if($userInfoOnServer.LastBadPasswordAttempt){$userInfoOnServer.LastBadPasswordAttempt.ToString("MM/dd/yyyy hh:mm:ss tt")}else{'None'}) `
+                    $(if($userInfoOnServer.PasswordLastSet){$userInfoOnServer.PasswordLastSet.ToString("MM/dd/yyyy hh:mm:ss tt")}else{"Change Password"}) `
+                    $(if($userInfoOnServer.PasswordLastSet){[datetime]::FromFileTime($userInfoOnServer.'msDS-UserPasswordExpiryTimeComputed').ToString("MM/dd/yyyy hh:mm:ss tt")}else{"N/A"}) `
                     $(if($userInfoOnServer.LockoutTime -gt 0){"Locked"}else{"Unlocked"}) `
                     $(if($userInfoOnServer.BadLogonCount){$userInfoOnServer.BadLogonCount}else{0}) `
                     $($dcs[$i].Name)
@@ -121,6 +123,7 @@ function Search-User{
         if($countUser[0].AccountExpirationDate){if((Get-Date -Date ($countUser[0].AccountExpirationDate)) -lt (Get-Date)){$iExpiredAccount.Visibility='Visible'}else{$iExpiredAccount.Visibility='Hidden'}}else{$iExpiredAccount.Visibility='Hidden'}
         $tbEmployeeID.Text = $userInfoOnServer.EmployeeID
         $tbSAMAccountName.Text = $userInfoOnServer.SAMAccountName
+        $tbDescription.Text = $userInfoOnServer.Description
     }elseif($countUser.Count -eq 0){
         for($i = 0; $i -lt $dcs.Count; $i++){       
             Set-Rows -RowIndex $i      
@@ -128,9 +131,11 @@ function Search-User{
         throw "User not found"
         $tbEmployeeID.Text = ""
         $tbSAMAccountName.Text = ""
+        $tbDescription.Text = ""
     }elseif($countUser.Count -gt 1){
         $tbEmployeeID.Text = ""
         $tbSAMAccountName.Text = ""
+        $tbDescription.Text = ""
         $iDisabledIcon.Visibility='Hidden'
         $iExpiredPassword.Visibility='Hidden'
         $iExpiredAccount.Visibility='Hidden'
@@ -223,16 +228,20 @@ function Create-SelectUserWindow{
         $SelectUserWindow.Close()
         $tbEmployeeID.Text = ''
         $tbSAMAccountName.Text = ''
+        $tbDescription.Text = ''
     })
 
-    #Select user from window displaying list of users retrieved from Search-User command. When user selected, their
-    #information is filled in the main window.
+    <#
+    Select user from window displaying list of users retrieved from Search-User command. When user selected, their
+    information is filled in the main window.
+    #>
     function Select-User{
         if(!$lbUsers.SelectedItem){
             throw "No user selected"
         }
         $tbEmployeeID.Text = "Collecting data..."
-        $tbSAMAccountName.Text = ""
+        $tbSAMAccountName.Text = ''
+        $tbDescription.Text = ''
         $user = $lbUsers.SelectedItem
         $iDisabledIcon.Visibility="Hidden"
         $iExpiredPassword.Visibility='Hidden'
@@ -252,6 +261,7 @@ function Create-SelectUserWindow{
         if($userInfoOnServer.AccountExpirationDate){if((Get-Date -Date ($userInfoOnServer.AccountExpirationDate)) -lt (Get-Date)){$iExpiredAccount.Visibility='Visible'}else{$iExpiredAccount.Visibility='Hidden'}}else{$iExpiredAccount.Visibility='Hidden'}
         $tbEmployeeID.Text = $userInfoOnServer.EmployeeID
         $tbSAMAccountName.Text = $userInfoOnServer.SAMAccountName
+        $tbDescription.Text = $userInfoOnServer.Description
         $SelectUserWindow.Close()
     }
     
@@ -273,8 +283,7 @@ function Clear-Window{
 
 function Search-Computer{    
     $lbSessions.Items.Clear()
-    $tbComputerName.Text = ''
-    #$tbIPAddress.Text =  ''
+    $tbComputerName.Text = ''   
     $tbFreeDiskSpace.Text = ''
     $tbMemoryUsage.Text = ''
     $tbLastBootTime.Text = ''
@@ -286,10 +295,12 @@ function Search-Computer{
         }
 
         $alAvailableSessions = [System.Collections.ArrayList]::new()
-            
-        #Get sessions on computer from native Windows command qwinsta as string
-        #Parse name, id and state of the active sessions from the string by getting 
-        #index of where each of these fields are on each row.
+        
+        <#    
+        Get sessions on computer from native Windows command 'qwinsta' as string
+        Parse name, id and state of the active sessions from the string by getting 
+        index of where each of these fields are on each row.
+        #>
         $sessions = (qwinsta /server $tbComputerSearch.Text).split("`n")
         $usernameIndex = $sessions[0].IndexOf('USERNAME')
         $IDIndex = $sessions[0].IndexOf('ID') - 2
@@ -341,11 +352,15 @@ function Send-Email{
     if($tbSAMAccountName.Text){
         $user = Get-AdUser -Identity $tbSAMAccountName.Text -Properties EmailAddress
     }else{
-        throw "No user selected"
+        $user = [pscustomobject]@{
+            EmailAddress=''
+            GivenName=''
+        }
     }
     $outlook = New-Object -ComObject Outlook.Application
     $mail = $outlook.createItem(0)
     $mail.To = $user.EmailAddress
+
     $mail.Display()
     $signature = $mail.HTMLBody
 
@@ -361,11 +376,18 @@ function Send-Email{
     $csv = Import-Csv '..\EmailTemplates.csv'
     $csv | ForEach-Object{$cbTemplate.AddChild($_.Name)}
 
-    $bSelectTemplate.Add_Click({Select-Template})
-    $bAddTemplate.Add_Click({Add-Template})
-    $bDeleteTemplate.Add_Click({Delete-Template})
+    $bSelectTemplate.Add_Click({try{Select-Template}catch{
+        [System.Windows.Forms.MessageBox]::Show($_)
+        $EmailWindow.close()
+    }})
+    $bAddTemplate.Add_Click({try{Add-Template}catch{[System.Windows.Forms.MessageBox]::Show($_)}})
+    $bDeleteTemplate.Add_Click({try{Delete-Template}catch{[System.Windows.Forms.MessageBox]::Show($_)}})   
 
     function Select-Template{
+        if(-not $outlook.Name){
+            
+            throw "The Outlook window is closed. Create a new one to send an email."
+        }
         $csv = Import-Csv '..\EmailTemplates.csv'
         $mail.HTMLBody = ''
         $templateName = $cbTemplate.SelectedItem
@@ -427,14 +449,19 @@ function Send-Email{
     }
 
     function Delete-Template{
+        if(-not $cbTemplate.SelectedItem){
+            throw "Please select an email template to delete"
+        }
         $confirmEmailDeleteWindow = .\CreateWindow.ps1 -Path '..\Windows\ConfirmEmailDeleteWindow.xaml'
+        $confirmEmailDeleteWindow.Owner = $MainWindow
+        $confirmEmailDeleteWindow.WindowStartupLocation = 'CenterOwner'
         $bConfirmDelete = $confirmEmailDeleteWindow.FindName('bConfirm')
         $bCancelDelete = $confirmEmailDeleteWindow.FindName('bCancel')
         $lDeleteEmailPrompt = $confirmEmailDeleteWindow.FindName('lDeleteEmailPrompt')
-        $lDeleteEmailPrompt.Content = "Are you sure you want to delete email template $($cbTemplate.SelectedItem)?"
+        $lDeleteEmailPrompt.Content = "Are you sure you want to delete $($cbTemplate.SelectedItem)?"
 
         $bConfirmDelete.Add_Click(
-            {
+            {                
                 $templateName = $cbTemplate.SelectedItem
                 $csv = Import-Csv -Path '..\EmailTemplates.csv'
                 $templates = [System.Collections.ArrayList]::new(@($csv))
@@ -457,13 +484,14 @@ function Send-Email{
         
                 $csv = Import-Csv '..\EmailTemplates.csv'
                 $csv | ForEach-Object{$cbTemplate.AddChild($_.Name)} 
-                $confirmEmailDeleteWindow.close()
+                $confirmEmailDeleteWindow.close()                
             }
         )
 
         $bCancelDelete.Add_Click({$confirmEmailDeleteWindow.close()})
 
         $confirmEmailDeleteWindow.ShowDialog() | Out-Null
+        
     }
 
     $EmailWindow.ShowDialog()|out-null
