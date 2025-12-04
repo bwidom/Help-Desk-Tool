@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:HelpDeskTool"
         mc:Ignorable="d"
-        Title="MainWindow" Height="320" Width="900">
+        Title="MainWindow" Height="320" Width="900" ResizeMode="NoResize">
     <Window.Resources>
         <!-- DataGrid style -->
         <Style x:Key="DataGridStyle1" TargetType="{x:Type DataGrid}">
@@ -47,7 +47,7 @@
                         <TextBox x:Name="tbEmployeeID" IsReadOnly="True" HorizontalAlignment="Left" BorderThickness="0" Height="17" Margin="554,17,0,0"  VerticalAlignment="Top" Width="200" Background="{x:Null}" BorderBrush="{x:Null}"  Foreground="Black" VerticalContentAlignment="Center" Padding="5,0,5,0"/>
                         <Label x:Name="lSAMAccountName" Content="Username:" HorizontalAlignment="Left" BorderThickness="0" Height="17" Margin="472,37,0,0"  VerticalAlignment="Top" Width="138" Background="{x:Null}" BorderBrush="{x:Null}"  Foreground="Black" VerticalContentAlignment="Center" Padding="5,0,5,0"/>
                         <TextBox x:Name="tbSAMAccountName" IsReadOnly="True" HorizontalAlignment="Left" BorderThickness="0" Height="17" Margin="554,37,0,0" VerticalAlignment="Top" Width="200" Background="{x:Null}" BorderBrush="{x:Null}" Foreground="Black" VerticalContentAlignment="Center" Padding="5,0,5,0"/>
-                        <TextBox x:Name="tbDescription" IsReadOnly="True" HorizontalAlignment="Left" BorderThickness="0" Height="17" Margin="554,57,0,0" VerticalAlignment="Top" Width="200" Background="{x:Null}" BorderBrush="{x:Null}" Foreground="Black" VerticalContentAlignment="Center" Padding="5,0,5,0"/>
+                        <TextBox x:Name="tbDescription" IsReadOnly="True" HorizontalAlignment="Left" BorderThickness="0" Height="17" Margin="554,57,0,0" VerticalAlignment="Top" Width="260" Background="{x:Null}" BorderBrush="{x:Null}" Foreground="Black" VerticalContentAlignment="Center" Padding="5,0,5,0"/>
                         <Label x:Name="lDescription" Content="Description:" HorizontalAlignment="Left" BorderThickness="0" Height="17" Margin="472,57,0,0"  VerticalAlignment="Top" Width="138" Background="{x:Null}" BorderBrush="{x:Null}"  Foreground="Black" VerticalContentAlignment="Center" Padding="5,0,5,0"/>
                         <Border BorderBrush="#FF898585" BorderThickness="1" HorizontalAlignment="Left" Height="70" VerticalAlignment="Top" Width="390" Tag="User Info" Margin="469,8,0,0"/>
                         <Image x:Name="iDisabledIcon" ToolTip="Account Disabled" HorizontalAlignment="Left" Height="25" Margin="732,14,0,0" VerticalAlignment="Top" Width="25" Visibility="Hidden"/>

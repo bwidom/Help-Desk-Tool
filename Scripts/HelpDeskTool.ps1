@@ -86,6 +86,9 @@ function Set-Rows{
 
 
 function Search-User{
+    param(
+        [string]$filter = [string]::Empty
+    )
     $tbEmployeeID.Text = "Collecting data..."
     $tbSAMAccountName.Text = ""
     $tbDescription.Text = ""
@@ -94,13 +97,15 @@ function Search-User{
     $iExpiredAccount.Visibility='Hidden'
     #Force the text box controls to update
     [System.Windows.Forms.Application]::DoEvents()
-    switch($cbSearchCriteria.SelectedIndex){
+    if($filter -eq [string]::Empty){
+        switch($cbSearchCriteria.SelectedIndex){
         0{
             $filter = "(EmployeeID -eq '$($tbSearchUser.Text)') "
         }
         1{
             $x = "*"+$tbSearchUser.Text+"*"
             $filter = "Name -like '$x' -OR SAMAccountName -like '$x'"          
+        }
         }
     }
     
@@ -148,7 +153,8 @@ function Unlock-User{
     if($tbSAMAccountName.Text){
         foreach($dc in $dcs){
                 Unlock-ADAccount -Identity $tbSAMAccountName.Text -Server $dc
-        }        
+        }    
+        Search-User -filter "Name -like '$($tbSAMAccountName.Text)' -OR SAMAccountName -like '$($tbSAMAccountName.Text)'"    
     }else{
         throw "No User Selected"
     }
@@ -192,7 +198,7 @@ function Create-PasswordWindow{
                 Set-ADUser -Identity $tbSAMAccountName.Text -ChangePasswordAtLogon $true
             }            
             [System.Windows.Forms.MessageBox]::Show("Password Changed")            
-            Search-User
+            Search-User -filter "Name -like '$($tbSAMAccountName.Text)' -OR SAMAccountName -like '$($tbSAMAccountName.Text)'"
             $ChangePasswordWindow.Close()
         }
 
@@ -331,7 +337,7 @@ function Search-Computer{
         }        
         $tbLastBootTime.Text = [Management.ManagementDateTimeConverter]::ToDateTime((Get-WmiObject -ComputerName $computerName.Name -Class Win32_OperatingSystem).LastBootUpTime)
     }else{
-        [System.Windows.Forms.MessageBox]::Show('No computer selected.')
+        [System.Windows.Forms.MessageBox]::Show('Search field cannot be empty.')
     }
         
 }
@@ -373,19 +379,24 @@ function Send-Email{
     $tbTemplateName = $EmailWindow.FindName('tbTemplateName')
     $bDeleteTemplate = $EmailWindow.FindName('bDeleteTemplate')
 
-    $csv = Import-Csv '..\EmailTemplates.csv'
+    $csv = Import-Csv '..\EmailTemplates.csv' | Sort-Object -Property Name
     $csv | ForEach-Object{$cbTemplate.AddChild($_.Name)}
 
     $bSelectTemplate.Add_Click({try{Select-Template}catch{
         [System.Windows.Forms.MessageBox]::Show($_)
         $EmailWindow.close()
     }})
-    $bAddTemplate.Add_Click({try{Add-Template}catch{[System.Windows.Forms.MessageBox]::Show($_)}})
-    $bDeleteTemplate.Add_Click({try{Delete-Template}catch{[System.Windows.Forms.MessageBox]::Show($_)}})   
+    $bAddTemplate.Add_Click({try{Add-Template}catch{[
+        System.Windows.Forms.MessageBox]::Show($_)
+        $EmailWindow.close()
+    }})
+    $bDeleteTemplate.Add_Click({try{Delete-Template}catch{
+        [System.Windows.Forms.MessageBox]::Show($_)
+        $EmailWindow.close()
+    }})   
 
     function Select-Template{
-        if(-not $outlook.Name){
-            
+        if(-not $outlook.Name){            
             throw "The Outlook window is closed. Create a new one to send an email."
         }
         $csv = Import-Csv '..\EmailTemplates.csv'
@@ -406,6 +417,9 @@ function Send-Email{
     }
 
     function Add-Template{
+        if(-not $outlook.Name){            
+            throw "The Outlook window is closed. Create a new one to send an email."
+        }
         $fileSize = Get-Item '..\EmailTemplates.csv' | Select-Object -ExpandProperty Length
         if($fileSize -lt 5MB){
             if(-not (Check-IfTemplateExists -templateName $tbTemplateName.Text)){
@@ -422,7 +436,7 @@ function Send-Email{
 
                 $cbTemplate.Items.Clear()        
         
-                $csv = Import-Csv '..\EmailTemplates.csv'
+                $csv = Import-Csv '..\EmailTemplates.csv' | Sort-Object -Property Name
                 $csv | ForEach-Object{$cbTemplate.AddChild($_.Name)}  
             }else{
                 [System.Windows.Forms.MessageBox]::Show('An email template with this name already exists. Please choose another name.')
@@ -463,7 +477,7 @@ function Send-Email{
         $bConfirmDelete.Add_Click(
             {                
                 $templateName = $cbTemplate.SelectedItem
-                $csv = Import-Csv -Path '..\EmailTemplates.csv'
+                $csv = Import-Csv -Path '..\EmailTemplates.csv' | Sort-Object -Property Name
                 $templates = [System.Collections.ArrayList]::new(@($csv))
         
                 for($i = 0; $i -lt $templates.Count; $i++){

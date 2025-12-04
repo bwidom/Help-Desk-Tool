@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ConfirmEmailDeleteWindow"
         mc:Ignorable="d"
-        Title="Delete Template" Height="125" Width="450">
+        Title="Delete Template" Height="125" Width="450" ResizeMode="NoResize">
     <Grid Background="#FFB8AFAF">
         <Label x:Name="lDeleteEmailPrompt" Content="Label" HorizontalAlignment="Center" Height="29" Margin="0,8,0,0" VerticalAlignment="Top" Width="450" HorizontalContentAlignment="Center" FontFamily="Leelawadee UI"/>
         <Button x:Name="bConfirm" Content="Confirm" HorizontalAlignment="Left" Height="25" Margin="100,58,0,0" VerticalAlignment="Top" Width="109" FontFamily="Leelawadee UI"/>
