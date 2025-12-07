@@ -100,11 +100,11 @@ function Search-User{
     if($filter -eq [string]::Empty){
         switch($cbSearchCriteria.SelectedIndex){
         0{
-            $filter = "(EmployeeID -eq '$($tbSearchUser.Text)') "
+            $filter = "(EmployeeID -eq '$($($tbSearchUser.Text).Trim())') "
         }
         1{
-            $x = "*"+$tbSearchUser.Text+"*"
-            $filter = "Name -like '$x' -OR SAMAccountName -like '$x'"          
+            $username = "*"+$tbSearchUser.Text.Trim()+"*"
+            $filter = "Name -like '$username' -OR SAMAccountName -like '$username'"          
         }
         }
     }
@@ -192,13 +192,13 @@ function Create-PasswordWindow{
         $tbNewPassword.Text = $password
 
         function Change-UserPassword{
-            Write-Host "Changing Password of $($tbSAMAccountName.Text) to $($tbNewPassword.Text)"
-            $u = Set-ADAccountPassword -Identity $tbSAMAccountName.Text -NewPassword (ConvertTo-SecureString -AsPlainText $tbNewPassword.Text -Force) -PassThru           
+            Write-Host "Changed Password of $($tbSAMAccountName.Text.Trim())"
+            Set-ADAccountPassword -Identity $tbSAMAccountName.Text.Trim() -NewPassword (ConvertTo-SecureString -AsPlainText $tbNewPassword.Text -Force) -PassThru           
             if($passwordSetting.makePasswordTemporary){
-                Set-ADUser -Identity $tbSAMAccountName.Text -ChangePasswordAtLogon $true
+                Set-ADUser -Identity $tbSAMAccountName.Text.Trim() -ChangePasswordAtLogon $true
             }            
             [System.Windows.Forms.MessageBox]::Show("Password Changed")            
-            Search-User -filter "Name -like '$($tbSAMAccountName.Text)' -OR SAMAccountName -like '$($tbSAMAccountName.Text)'"
+            Search-User -filter "Name -like '$($tbSAMAccountName.Text.Trim())' -OR SAMAccountName -like '$($tbSAMAccountName.Text.Trim())'"
             $ChangePasswordWindow.Close()
         }
 
@@ -221,7 +221,7 @@ function Create-SelectUserWindow{
     $SelectUserWindow.WindowStartupLocation = 'CenterOwner'
 
     $lbUsers = $SelectUserWindow.FindName('lbUsers')
-    $userInfoOnServer = @(Get-ADUser -Filter $filter)
+    $userInfoOnServer = @(Get-ADUser -Filter $filter | Sort-Object -Property Name)
     foreach($user in $userInfoOnServer){
         $lbUsers.AddChild($user.SAMAccountName)
     }
@@ -255,9 +255,9 @@ function Create-SelectUserWindow{
         for($i = 0; $i -lt $dcs.Count; $i++){ 
                 $userInfoOnServer = @(Get-ADUser $user -Server $dcs[$i] -Properties $properties)
                 Set-Rows $i `
-                    $(if($userInfoOnServer.LastBadPasswordAttempt){$userInfoOnServer.LastBadPasswordAttempt}else{'None'}) `
-                    $(if($userInfoOnServer.PasswordLastSet){$userInfoOnServer.PasswordLastSet}else{"Change Password"}) `
-                    $(if($userInfoOnServer.PasswordLastSet){[datetime]::FromFileTime($userInfoOnServer.'msDS-UserPasswordExpiryTimeComputed')}else{"N/A"}) `
+                    $(if($userInfoOnServer.LastBadPasswordAttempt){$userInfoOnServer.LastBadPasswordAttempt.ToString("MM/dd/yyyy hh:mm:ss tt")}else{'None'}) `
+                    $(if($userInfoOnServer.PasswordLastSet){$userInfoOnServer.PasswordLastSet.ToString("MM/dd/yyyy hh:mm:ss tt")}else{"Change Password"}) `
+                    $(if($userInfoOnServer.PasswordLastSet){[datetime]::FromFileTime($userInfoOnServer.'msDS-UserPasswordExpiryTimeComputed').ToString("MM/dd/yyyy hh:mm:ss tt")}else{"N/A"}) `
                     $(if($userInfoOnServer.LockoutTime -gt 0){"Locked"}else{"Unlocked"}) `
                     $(if($userInfoOnServer.BadLogonCount){$userInfoOnServer.BadLogonCount}else{0}) `
                     $($dcs[$i].Name)
@@ -294,10 +294,10 @@ function Search-Computer{
     $tbMemoryUsage.Text = ''
     $tbLastBootTime.Text = ''
     
-    if($tbComputerSearch.Text){
-        $computerName = @(Get-ADComputer -Identity $tbComputerSearch.Text)
-        if(!(Test-Connection $tbComputerSearch.Text -Quiet -Count 1)){
-            Throw "Unable to connect to $($tbComputerSearch.Text)" 
+    if($tbComputerSearch.Text.Trim()){
+        $computerName = @(Get-ADComputer -Identity $tbComputerSearch.Text.Trim())
+        if(!(Test-Connection $tbComputerSearch.Text.Trim() -Quiet -Count 1)){
+            Throw "Unable to connect to $($tbComputerSearch.Text.Trim())" 
         }
 
         $alAvailableSessions = [System.Collections.ArrayList]::new()
@@ -307,7 +307,7 @@ function Search-Computer{
         Parse name, id and state of the active sessions from the string by getting 
         index of where each of these fields are on each row.
         #>
-        $sessions = (qwinsta /server $tbComputerSearch.Text).split("`n")
+        $sessions = (qwinsta /server $tbComputerSearch.Text.Trim()).split("`n")
         $usernameIndex = $sessions[0].IndexOf('USERNAME')
         $IDIndex = $sessions[0].IndexOf('ID') - 2
         $stateIndex = $sessions[0].IndexOf('STATE')
